@@ -4,7 +4,6 @@ import morgan from "morgan";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { connectMongo } from "./database/db.js";
-import MainRouter from "./routes/main.js";
 import LgaRouter from "./routes/lga.js";
 import SchoolRouter from "./routes/school.js";
 import StaffRouter from "./routes/staff.js";
@@ -31,7 +30,6 @@ app.use(bodyParser.json());
 app.use(cors());
 
 //configuring routes
-app.use(`${api}/main`, MainRouter);
 app.use(`${api}/lga`, LgaRouter);
 app.use(`${api}/school`, SchoolRouter);
 app.use(`${api}/staffs`, StaffRouter);
