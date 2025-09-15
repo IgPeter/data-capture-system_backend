@@ -14,6 +14,8 @@ const learnerSchema = new Schema({
   parent: String,
   arm: String,
   yearAdmitted: String,
+  longitude: String,
+  latitude: String,
 });
 
 export const Learners = mongoose.model("Learners", learnerSchema);

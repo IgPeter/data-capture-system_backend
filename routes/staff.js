@@ -47,7 +47,7 @@ router.post(`/`, upload.single("avatar"), async (req, res) => {
 
     res.status(201).json({ success: true, data: newStaff });
   } catch (error) {
-    console.error("Error saving facility:", error);
+    console.error("Error saving staff:", error);
     res.status(500).json({ success: false });
   }
 });

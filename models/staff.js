@@ -29,6 +29,8 @@ const StaffSchema = new Schema({
   subjectArea: String,
   documentSighted: String,
   avatar: String,
+  longitude: String,
+  latitude: String,
 });
 
 export const Staff = mongoose.model("Staff", StaffSchema);
