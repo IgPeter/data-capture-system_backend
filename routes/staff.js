@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 import { Staff } from "../models/staff.js";
-import { formatRequestBody } from "../utilities/formatData.js";
+import { formatRequestBody, initSchoolData } from "../utilities/formatData.js";
 import multer from "multer";
 
 const fileExtension = {
@@ -26,6 +26,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.post(`/`, upload.single("avatar"), async (req, res) => {
+  const { school } = req.query;
+
   try {
     const data = req.body;
 
@@ -41,8 +43,13 @@ router.post(`/`, upload.single("avatar"), async (req, res) => {
     data.avatar = `${filePath}/${fileName}`;
 
     const formattedData = formatRequestBody(data);
+
+    //initializing school data
+    const schoolData = await initSchoolData(school);
+
     // ✅ Save to MongoDB
     const newStaff = new Staff(formattedData);
+    newStaff.school = schoolData._id;
     await newStaff.save();
 
     res.status(201).json({ success: true, data: newStaff });

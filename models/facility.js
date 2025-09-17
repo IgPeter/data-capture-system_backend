@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
 const facilitySchema = new Schema({
+  school: { type: Schema.Types.ObjectId, ref: "School", required: true },
   toilet: String,
   toiletComment: String,
   fence: String,
@@ -44,6 +45,7 @@ const facilitySchema = new Schema({
   curriculumComment: String,
   eccdeLearningMaterials: String,
   eccdeLmComment: String,
+  capturedBy: String,
 });
 
 export const Facilities = mongoose.model("Facilities", facilitySchema);

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
 const StaffSchema = new Schema({
+  school: { type: Schema.Types.ObjectId, ref: "School", required: true },
   fullName: String,
   staffId: String,
   dob: Date,
@@ -29,6 +30,7 @@ const StaffSchema = new Schema({
   subjectArea: String,
   documentSighted: String,
   avatar: String,
+  capturedBy: String,
   longitude: String,
   latitude: String,
 });
