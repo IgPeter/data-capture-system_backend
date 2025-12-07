@@ -9,6 +9,12 @@ router.post(`/`, async (req, res) => {
     const data = req.body;
     const { school } = req.query;
 
+    if (school === undefined || school.trim() === "") {
+      return res
+        .status(403)
+        .json({ message: "Cannot upload any data without a school" });
+    }
+
     const formattedData = formatRequestBody(data);
 
     //initializing school data

@@ -1,25 +1,33 @@
 import express from "express";
 import fs from "fs/promises"; // use promises instead of callbacks
-import { getUniqueLga } from "../utilities/formatData.js";
-
+import { fetchMySQLData, getUniqueLga } from "../utilities/formatData.js";
 const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-    // read file using fs/promises
-    const data = await fs.readFile("./teachers.json", "utf-8");
+    const result = await fetchMySQLData();
 
-    let allStaffs;
+    if (!result) {
+      return res
+        .status(500)
+        .json({ message: "Error fetching data from MySQL" });
+    }
+
+    // read file using fs/promises
+    const data = await fs.readFile("./schools.json", "utf-8");
+
+    let allSchools;
+
     try {
-      allStaffs = JSON.parse(data);
+      allSchools = JSON.parse(data);
     } catch (parseError) {
       return res.status(500).json({ message: "Invalid JSON format" });
     }
 
     // filter staff with valid lga only
-    const lgas = allStaffs
-      .filter((staff) => staff && staff.lga)
-      .map((staff) => staff.lga.trim());
+    const lgas = allSchools
+      .filter((school) => school && school.LGEA)
+      .map((school) => school.LGEA.trim());
 
     const uniqueLga = getUniqueLga(lgas);
 

@@ -1,5 +1,7 @@
+// app.js
 import express from "express";
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 import morgan from "morgan";
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -11,40 +13,92 @@ import LearnersRouter from "./routes/learners.js";
 import FacilityRouter from "./routes/facility.js";
 import path from "path";
 import { fileURLToPath } from "url";
+
+dotenv.config();
 const app = express();
 
-//configuring dotenv
-dotenv.config();
-
-//env variables
-const PORT = process.env.PORT;
-const api = process.env.API_URL;
-
-//configuring __dirname
+// basic logs to help debugging
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const PORT = process.env.PORT || 5000;
+const listening_ip = process.env.listeningIP || "localhost";
 
-//using middlewares
+console.log(listening_ip);
+
+// --- SANITIZE API BASE ---
+let api = process.env.API_URL; //?? "/api";
+/*if (typeof api !== "string") api = "/api";
+api = api.trim();
+if (api === "" || api === "*" || api === "/*") {
+  console.warn("Invalid API_URL in env; falling back to /api");
+  api = "/api";
+}
+if (!api.startsWith("/")) api = `/${api}`; // ensure leading slash
+// remove trailing slash
+if (api.length > 1 && api.endsWith("/")) api = api.slice(0, -1);
+console.log("Using API base:", api);
+*/
+// middlewares
 app.use(morgan("tiny"));
 app.use(bodyParser.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: "*", // adjust this in production to restrict domains
+  })
+);
 
-//configuring routes
+// --- API ROUTES (use sanitized api) ---
 app.use(`${api}/lga`, LgaRouter);
 app.use(`${api}/school`, SchoolRouter);
 app.use(`${api}/staffs`, StaffRouter);
 app.use(`${api}/learners`, LearnersRouter);
 app.use(`${api}/facilities`, FacilityRouter);
 
-//serving static files
+// static uploads
 app.use(
   "/public/upload",
   express.static(path.join(__dirname, "public", "upload"))
 );
 
-//Database connection
-connectMongo();
+// serve the built react app
+const distPath = path.join(__dirname, "dist");
+app.use(express.static(distPath));
 
-app.listen(PORT, () => {
-  console.log(`app running at port ${PORT}`);
+// --- FALLBACK: avoid path-to-regexp by using middleware ---
+app.use((req, res, next) => {
+  // only handle GET requests that accept HTML (SPA navigation)
+  if (req.method !== "GET") return next();
+
+  const accept = req.headers.accept || "";
+  if (!accept.includes("text/html")) return next();
+
+  // serve index.html
+  res.sendFile("index.html", { root: distPath }, (err) => {
+    if (err) {
+      console.error("Error sending index.html:", err);
+      next(err);
+    }
+  });
+});
+
+// connect DB + start server
+await connectMongo().catch((err) => {
+  console.error("Mongo connection failed:", err);
+  // optionally exit process if DB is critical
+});
+
+mongoose.connection.on("connected", () => {
+  console.log("✅ MongoDB connected");
+});
+
+mongoose.connection.on("disconnected", () => {
+  console.log("⚠️ MongoDB disconnected, will retry...");
+});
+
+mongoose.connection.on("reconnectFailed", () => {
+  console.log("❌ MongoDB reconnection failed");
+});
+
+app.listen(PORT, listening_ip, () => {
+  console.log(`App running at ${listening_ip}:${PORT}`);
 });

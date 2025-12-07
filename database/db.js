@@ -8,6 +8,7 @@ export async function connectMongo() {
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000, // Retry connection every 5s
       }
     );
     console.log("✅ MongoDB connected");

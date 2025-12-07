@@ -46,6 +46,7 @@ const facilitySchema = new Schema({
   eccdeLearningMaterials: String,
   eccdeLmComment: String,
   capturedBy: String,
+  dateCreated: { type: Date, default: Date.now },
 });
 
 export const Facilities = mongoose.model("Facilities", facilitySchema);

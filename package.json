@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon --ignore teacher.json app.js"
   },
   "author": "",
   "license": "ISC",
@@ -22,5 +22,10 @@
     "mysql2": "^3.14.4",
     "nodemon": "^3.1.10",
     "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10",
+    "install": "^0.13.0",
+    "npm": "^11.6.0"
   }
 }

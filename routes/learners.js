@@ -1,14 +1,20 @@
 import express from "express";
 const router = express.Router();
 import { Learners } from "../models/learners.js";
-import { formatRequestBody, initSchoolData } from "../utilities/formatData.js";
+import { initSchoolData, formatLearnerData } from "../utilities/formatData.js";
 
 router.post(`/`, async (req, res) => {
   try {
     const data = req.body;
     const { school } = req.query;
 
-    const formattedData = formatRequestBody(data);
+    if (school === undefined || school.trim() === "") {
+      return res
+        .status(403)
+        .json({ message: "Cannot upload any data without a school" });
+    }
+
+    const formattedData = formatLearnerData(data);
 
     //initializing school data
     const schoolData = await initSchoolData(school);
