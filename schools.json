@@ -2511,7 +2511,7 @@
     "id": 419,
     "LGEA": "BURUKU",
     "SCHOOL_NAME": "ST. SIMON'S ANG. PRI SCH., IKYAA",
-    "ADDRESS": ""
+    "ADDRESS": "IKYAA"
   },
   {
     "id": 420,
@@ -20080,5 +20080,53 @@
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "LGEA PRI MBAGWEN",
     "ADDRESS": "MBAGWEN"
+  },
+  {
+    "id": 3350,
+    "LGEA": "MAKURDI",
+    "SCHOOL_NAME": "UBE JSS NASME ",
+    "ADDRESS": "NASME"
+  },
+  {
+    "id": 3351,
+    "LGEA": "MAKURDI",
+    "SCHOOL_NAME": "UBE JSS LGEA WURUKUM ",
+    "ADDRESS": "WURUKUM"
+  },
+  {
+    "id": 3352,
+    "LGEA": "MAKURDI",
+    "SCHOOL_NAME": "UBE JSS LGEA AKAJEBELA ",
+    "ADDRESS": "AKAJEBELA"
+  },
+  {
+    "id": 3353,
+    "LGEA": "MAKURDI",
+    "SCHOOL_NAME": "UBE JSS LGEA POOR ",
+    "ADDRESS": "MAKURDI"
+  },
+  {
+    "id": 3354,
+    "LGEA": "MAKURDI",
+    "SCHOOL_NAME": "UBE JSS ADEKE ",
+    "ADDRESS": "MAKURDI"
+  },
+  {
+    "id": 3355,
+    "LGEA": "MAKURDI",
+    "SCHOOL_NAME": "UBE JSS ACHUSA ",
+    "ADDRESS": "ACHUSA"
+  },
+  {
+    "id": 3356,
+    "LGEA": "MAKURDI",
+    "SCHOOL_NAME": "LGEA PRI SCH HIGH LEVEL ",
+    "ADDRESS": "HIGH LEVEL"
+  },
+  {
+    "id": 3357,
+    "LGEA": "MAKURDI",
+    "SCHOOL_NAME": "UBE JSS IJAHA 11",
+    "ADDRESS": "IJAHA"
   }
 ]

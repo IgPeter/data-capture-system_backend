@@ -13,6 +13,7 @@ router.get(`/by-lga`, async (req, res) => {
       if (err) {
         return res.status(500).json({ message: "Error reading file" });
       }
+
       const schoolData = JSON.parse(data);
 
       const finalSchoolData = schoolData.map((data) =>
@@ -45,34 +46,43 @@ router.get(`/schoolsWithLga`, async (req, res) => {
       return res.status(404).json({ message: "No school found" });
     }
 
+    const schoolsToInsert = [];
+
     schoolsList.forEach((school) => {
-      if (
-        school.ADDRESS == "" ||
-        school.ADDRESS == undefined ||
-        school.SCHOOL_NAME == "" ||
-        school.SCHOOL_NAME == undefined ||
-        school.LGEA == "" ||
-        school.LGEA == undefined
-      ) {
+      // 🧹 Trim all string fields safely
+      const name = school.SCHOOL_NAME?.trim();
+      const lga = school.LGEA?.trim();
+      const address = school.ADDRESS?.trim();
+
+      // ❌ Skip incomplete or empty-after-trim data
+      if (!name || !lga || !address) {
         console.log("Incomplete data found, skipping entry:", school);
+        return;
       }
+
+      schoolsToInsert.push(
+        new SchoolWithLga({
+          name,
+          lga,
+          address,
+        })
+      );
     });
 
-    const schoolsToInsert = schoolsList.map((schoolData) => {
-      return new SchoolWithLga({
-        name: schoolData.SCHOOL_NAME,
-        lga: schoolData.LGEA,
-        address: schoolData.ADDRESS,
-      });
-    });
+    if (schoolsToInsert.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "No valid school records to insert" });
+    }
 
     await SchoolWithLga.insertMany(schoolsToInsert, {
-      ordered: false,
+      ordered: false, // continues even if some fail
     });
 
-    res
-      .status(200)
-      .json({ message: "School Data fetched and SchoolWithLga created" });
+    res.status(200).json({
+      message: "School Data fetched and SchoolWithLga created",
+      inserted: schoolsToInsert.length,
+    });
   } catch (error) {
     console.error("Error fetching school data:", error);
     res.status(500).json({ message: "Internal Server Error" });

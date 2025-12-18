@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const learnerSchema = new Schema({
   school: { type: Schema.Types.ObjectId, ref: "School", required: true },
   eccde: {
-    eecde_male: Number,
+    eccde_male: Number,
     eccde_female: Number,
   },
   primary1: {
