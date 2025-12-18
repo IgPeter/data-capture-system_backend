@@ -65,6 +65,9 @@ export async function fetchMySQLData() {
       user: process.env.MYSQL_USER,
       password: process.env.MYSQL_PASSWORD,
       database: process.env.MYSQL_DB1,
+      port: process.env.DB_PORT,
+      waitForConnections: true,
+      connectionLimit: 10,
     });
 
     console.log("✅ MySQL connected");
