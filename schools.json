@@ -19950,100 +19950,106 @@
     "ADDRESS": "ADURA"
   },
   {
-    "id": 3327,
+    "id": 3326,
     "LGEA": "OJU",
     "SCHOOL_NAME": "LGEA PRI SCH OYE",
     "ADDRESS": "IGEDE"
   },
   {
-    "id": 3328,
+    "id": 3327,
     "LGEA": "OJU",
     "SCHOOL_NAME": "UBE JSS AKIRABA",
     "ADDRESS": "AKIRABA"
   },
   {
-    "id": 3329,
+    "id": 3328,
     "LGEA": "OJU",
     "SCHOOL_NAME": "UBE JSS EZZA IDELLE",
     "ADDRESS": "IDELLE"
   },
   {
-    "id": 3330,
+    "id": 3329,
     "LGEA": "OJU",
     "SCHOOL_NAME": "UBE JSS OYE OHUMA",
     "ADDRESS": "OHUMA"
   },
   {
-    "id": 3331,
+    "id": 3330,
     "LGEA": "OBI",
     "SCHOOL_NAME": "UBE JSS IKONYIRE",
     "ADDRESS": "IKONYIRE"
   },
   {
-    "id": 3332,
+    "id": 3331,
     "LGEA": "OBI",
     "SCHOOL_NAME": "UBE JSS IKIRIHIE",
     "ADDRESS": "IKIRIHIE"
   },
   {
-    "id": 3333,
+    "id": 3332,
     "LGEA": "OBI",
     "SCHOOL_NAME": "UBE JSS IRABI",
     "ADDRESS": "IRABI"
   },
   {
-    "id": 3334,
+    "id": 3333,
     "LGEA": "OBI",
     "SCHOOL_NAME": "UBE JSS OCHINGINI",
     "ADDRESS": "OCHINGINI"
   },
   {
-    "id": 3335,
+    "id": 3334,
     "LGEA": "OBI",
     "SCHOOL_NAME": "UBE JSS UDEGI",
     "ADDRESS": "IKWOKWU"
   },
   {
-    "id": 3336,
+    "id": 3335,
     "LGEA": "OBI",
     "SCHOOL_NAME": "UBE JSS ITAKPA",
     "ADDRESS": "ITAKPA"
   },
   {
-    "id": 3337,
+    "id": 3336,
     "LGEA": "GWER-EAST",
     "SCHOOL_NAME": "LGEA PRI SCH ALLAH",
     "ADDRESS": "ALLAH"
   },
   {
-    "id": 3338,
+    "id": 3337,
     "LGEA": "OTUKPO",
     "SCHOOL_NAME": "ST. AUGUSTINE UBE JSS OTUKPO",
     "ADDRESS": "OTUKPO"
   },
   {
-    "id": 3339,
+    "id": 3338,
     "LGEA": "GWER-EAST",
     "SCHOOL_NAME": "RCM PRI SCH ADUETSAV",
     "ADDRESS": "ADUETSAV"
   },
   {
-    "id": 3340,
+    "id": 3339,
     "LGEA": "GWER-EAST",
     "SCHOOL_NAME": "LGEA PRI SCH IMBOKO AKU",
     "ADDRESS": "IMBOKO AKU"
   },
   {
-    "id": 3341,
+    "id": 3340,
     "LGEA": "GWER-EAST",
     "SCHOOL_NAME": "RCM PRI SCH HUNDU",
     "ADDRESS": "HUNDU"
   },
   {
-    "id": 3342,
+    "id": 3341,
     "LGEA": "GWER-EAST",
     "SCHOOL_NAME": "LGEA PRI SCH NEV",
     "ADDRESS": "NEV"
+  },
+  {
+    "id": 3342,
+    "LGEA": "GWER-EAST",
+    "SCHOOL_NAME": "NKST PRI SCH ADUKU",
+    "ADDRESS": "ADAGBA"
   },
   {
     "id": 3343,
@@ -20053,80 +20059,218 @@
   },
   {
     "id": 3344,
-    "LGEA": "GWER-EAST",
-    "SCHOOL_NAME": "NKST PRI SCH ADUKU",
-    "ADDRESS": "ADAGBA"
-  },
-  {
-    "id": 3345,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "UBE JSS NORTH BANK",
     "ADDRESS": "MAKURDI"
   },
   {
-    "id": 3346,
+    "id": 3345,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "UBE JSS TATYOUGH",
     "ADDRESS": "MAKURDI"
   },
   {
-    "id": 3347,
+    "id": 3346,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "LGEA PRI SCH AGAN",
     "ADDRESS": "AGAN"
   },
   {
-    "id": 3348,
+    "id": 3347,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "LGEA PRI MBAGWEN",
     "ADDRESS": "MBAGWEN"
   },
   {
-    "id": 3350,
+    "id": 3348,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "UBE JSS NASME ",
     "ADDRESS": "NASME"
   },
   {
-    "id": 3351,
+    "id": 3349,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "UBE JSS LGEA WURUKUM ",
     "ADDRESS": "WURUKUM"
   },
   {
-    "id": 3352,
+    "id": 3350,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "UBE JSS LGEA AKAJEBELA ",
     "ADDRESS": "AKAJEBELA"
   },
   {
-    "id": 3353,
+    "id": 3351,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "UBE JSS LGEA POOR ",
     "ADDRESS": "MAKURDI"
   },
   {
-    "id": 3354,
+    "id": 3352,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "UBE JSS ADEKE ",
     "ADDRESS": "MAKURDI"
   },
   {
-    "id": 3355,
+    "id": 3353,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "UBE JSS ACHUSA ",
     "ADDRESS": "ACHUSA"
   },
   {
-    "id": 3356,
+    "id": 3354,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "LGEA PRI SCH HIGH LEVEL ",
     "ADDRESS": "HIGH LEVEL"
   },
   {
-    "id": 3357,
+    "id": 3355,
     "LGEA": "MAKURDI",
     "SCHOOL_NAME": "UBE JSS IJAHA 11",
     "ADDRESS": "IJAHA"
+  },
+  {
+    "id": 3356,
+    "LGEA": "MAKURDI",
+    "SCHOOL_NAME": "UBE JSS MODEL SMART SCHOOL ADAKA",
+    "ADDRESS": "ADAKA"
+  },
+  {
+    "id": 3357,
+    "LGEA": "GUMA",
+    "SCHOOL_NAME": "LGEA PRI SCH UTEM",
+    "ADDRESS": "UTEM"
+  },
+  {
+    "id": 3358,
+    "LGEA": "TARKA",
+    "SCHOOL_NAME": "UBE JSS ATAA",
+    "ADDRESS": "ATAR"
+  },
+  {
+    "id": 3359,
+    "LGEA": "TARKA",
+    "SCHOOL_NAME": "LGEA PRI SCH MBAALI",
+    "ADDRESS": "MBAALI"
+  },
+  {
+    "id": 3360,
+    "LGEA": "TARKA",
+    "SCHOOL_NAME": "LGEA PRI SCH UYARAKO",
+    "ADDRESS": "UYARAKO"
+  },
+  {
+    "id": 3361,
+    "LGEA": "TARKA",
+    "SCHOOL_NAME": "LGEA PRI SCH DEZUAN",
+    "ADDRESS": "MBANDUHGUL"
+  },
+  {
+    "id": 3362,
+    "LGEA": "TARKA",
+    "SCHOOL_NAME": "LGEA PRI SCH ORVANDE",
+    "ADDRESS": "ORVANDE"
+  },
+  {
+    "id": 3363,
+    "LGEA": "GBOKO",
+    "SCHOOL_NAME": "UBE JSS AKAA",
+    "ADDRESS": "IPAV"
+  },
+  {
+    "id": 3364,
+    "LGEA": "GBOKO",
+    "SCHOOL_NAME": "UBE JSS ORPHNAGE",
+    "ADDRESS": "IPAV"
+  },
+  {
+    "id": 3365,
+    "LGEA": "GBOKO",
+    "SCHOOL_NAME": "LGEA PRI SCH YAINJO",
+    "ADDRESS": "IPAV"
+  },
+  {
+    "id": 3366,
+    "LGEA": "GBOKO",
+    "SCHOOL_NAME": "UBE JSS TSE-NYAJO",
+    "ADDRESS": "IPAV"
+  },
+  {
+    "id": 3367,
+    "LGEA": "GBOKO",
+    "SCHOOL_NAME": "UBE JSS MBAYEM",
+    "ADDRESS": "MBATIAV"
+  },
+  {
+    "id": 3368,
+    "LGEA": "GBOKO",
+    "SCHOOL_NAME": "LGEA PRI SCH MBANYAM",
+    "ADDRESS": "MBANYAM"
+  },
+  {
+    "id": 3369,
+    "LGEA": "GBOKO",
+    "SCHOOL_NAME": "UBE JSS TYOADO",
+    "ADDRESS": "TYOADO"
+  },
+  {
+    "id": 3370,
+    "LGEA": "GBOKO",
+    "SCHOOL_NAME": "UBE JSS TYOADO",
+    "ADDRESS": "TYOADO"
+  },
+  {
+    "id": 3371,
+    "LGEA": "GBOKO",
+    "SCHOOL_NAME": "LGEA PRI SCH NAIBO",
+    "ADDRESS": "YANDEV"
+  },
+  {
+    "id": 3372,
+    "LGEA": "BURUKU",
+    "SCHOOL_NAME": "LGEA PRI SCH TSAR",
+    "ADDRESS": "MBAGEN"
+  },
+  {
+    "id": 3373,
+    "LGEA": "BURUKU",
+    "SCHOOL_NAME": "LGEA PRI SCH IGBUR",
+    "ADDRESS": "MBAGEN"
+  },
+  {
+    "id": 3374,
+    "LGEA": "BURUKU",
+    "SCHOOL_NAME": "UBE JSS AGINE-MBATOUGH",
+    "ADDRESS": "MBAGEN"
+  },
+  {
+    "id": 3375,
+    "LGEA": "LOGO",
+    "SCHOOL_NAME": "NKST PRIMARY SCHOOL ABUL",
+    "ADDRESS": "ABUL"
+  },
+  {
+    "id": 3376,
+    "LGEA": "LOGO",
+    "SCHOOL_NAME": "UBE JSS TSE-ORBIAM",
+    "ADDRESS": "ORBIAM"
+  },
+  {
+    "id": 3377,
+    "LGEA": "LOGO",
+    "SCHOOL_NAME": "UBE JSS ANYIN",
+    "ADDRESS": "ANYIN"
+  },
+  {
+    "id": 3378,
+    "LGEA": "LOGO",
+    "SCHOOL_NAME": "LGEA PRIMARY SCHOOL UOMBOR",
+    "ADDRESS": "UOMBOR"
+  },
+  {
+    "id": 3379,
+    "LGEA": "LOGO",
+    "SCHOOL_NAME": "NKST PRIMARY SCHOOL ABEDA",
+    "ADDRESS": "ABEDA"
   }
 ]

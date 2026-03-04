@@ -42,12 +42,15 @@ export function formatLearnerData(data) {
         formattedData["primary6"] = formattedData["primary6"] || {};
         formattedData["primary6"][key] = data[key];
       } else if (key.includes("jss1")) {
+        console.log("Formatting JSS1 data for key:", key); // Debug log
         formattedData["ubeJss1"] = formattedData["ubeJss1"] || {};
         formattedData["ubeJss1"][key] = data[key];
       } else if (key.includes("jss2")) {
+        console.log("Formatting JSS2 data for key:", key); // Debug log
         formattedData["ubeJss2"] = formattedData["ubeJss2"] || {};
         formattedData["ubeJss2"][key] = data[key];
       } else if (key.includes("jss3")) {
+        console.log("Formatting JSS3 data for key:", key); // Debug log
         formattedData["ubeJss3"] = formattedData["ubeJss3"] || {};
         formattedData["ubeJss3"][key] = data[key];
       } else {
@@ -163,17 +166,23 @@ export async function initSchoolData(school) {
   let schoolData;
 
   //adding school
-  const passedSchool = await School.find({ name: school });
+  const passedSchool = await School.findOne({
+    name: school.SCHOOL_NAME,
+    lga: school.LGEA,
+    address: school.ADDRESS,
+  });
 
-  if (!passedSchool.length > 0) {
+  if (!passedSchool) {
     const newSchool = new School({
-      name: school,
+      name: school.SCHOOL_NAME,
+      lga: school.LGEA,
+      address: school.ADDRESS,
     });
 
     //save school to mongoDB
     schoolData = await newSchool.save();
   } else {
-    schoolData = passedSchool[0];
+    schoolData = passedSchool;
   }
 
   return schoolData;

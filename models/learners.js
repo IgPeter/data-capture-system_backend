@@ -38,18 +38,18 @@ const learnerSchema = new Schema({
   },
 
   ubeJss1: {
-    ubeJss1_male: Number,
-    ubeJss1_female: Number,
+    jss1_male: Number,
+    jss1_female: Number,
   },
 
   ubeJss2: {
-    ubeJss2_male: Number,
-    ubeJss2_female: Number,
+    jss2_male: Number,
+    jss2_female: Number,
   },
 
   ubeJss3: {
-    ubeJss3_male: Number,
-    ubeJss3_female: Number,
+    jss3_male: Number,
+    jss3_female: Number,
   },
 
   capturedBy: String,

@@ -9,8 +9,10 @@ import { connectMongo } from "./database/db.js";
 import LgaRouter from "./routes/lga.js";
 import SchoolRouter from "./routes/school.js";
 import StaffRouter from "./routes/staff.js";
+import UserRouter from "./routes/user.js";
 import LearnersRouter from "./routes/learners.js";
 import FacilityRouter from "./routes/facility.js";
+import DashboardRouter from "./routes/dashboard.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -23,7 +25,7 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 5000;
 const listening_ip = process.env.listeningIP || "localhost";
 
-console.log(listening_ip);
+console.log(PORT);
 
 // --- SANITIZE API BASE ---
 let api = process.env.API_URL; //?? "/api";
@@ -44,20 +46,24 @@ app.use(bodyParser.json());
 app.use(
   cors({
     origin: "*", // adjust this in production to restrict domains
-  })
+  }),
 );
 
+console.log(`API base path: ${api}`);
+
 // --- API ROUTES (use sanitized api) ---
+app.use(`${api}/dashboard`, DashboardRouter);
 app.use(`${api}/lga`, LgaRouter);
 app.use(`${api}/school`, SchoolRouter);
 app.use(`${api}/staffs`, StaffRouter);
 app.use(`${api}/learners`, LearnersRouter);
 app.use(`${api}/facilities`, FacilityRouter);
+app.use(`${api}/users`, UserRouter);
 
 // static uploads
 app.use(
   "/public/upload",
-  express.static(path.join(__dirname, "public", "upload"))
+  express.static(path.join(__dirname, "public", "upload")),
 );
 
 // serve the built react app
@@ -82,7 +88,7 @@ app.use((req, res, next) => {
 });
 
 // connect DB + start server
-await connectMongo().catch((err) => {
+/*await connectMongo().catch((err) => {
   console.error("Mongo connection failed:", err);
   // optionally exit process if DB is critical
 });
@@ -97,8 +103,10 @@ mongoose.connection.on("disconnected", () => {
 
 mongoose.connection.on("reconnectFailed", () => {
   console.log("❌ MongoDB reconnection failed");
-});
+});*/
 
-app.listen(PORT, listening_ip, () => {
+/*app.listen(PORT, listening_ip, () => {
   console.log(`App running at ${listening_ip}:${PORT}`);
-});
+});*/
+
+export default app;
