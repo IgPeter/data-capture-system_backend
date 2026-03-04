@@ -25,8 +25,6 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 5000;
 const listening_ip = process.env.listeningIP || "localhost";
 
-console.log(PORT);
-
 // --- SANITIZE API BASE ---
 let api = process.env.API_URL; //?? "/api";
 /*if (typeof api !== "string") api = "/api";
