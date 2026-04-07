@@ -9,6 +9,20 @@ const router = express.Router();
 router.post(`/register`, async (req, res) => {
   const userDetails = req.body;
 
+  const validRoles = [
+    "state_admin",
+    "zonal_admin_A",
+    "zonal_admin_B",
+    "zonal_admin_C",
+    "lga_admin",
+    "school_admin",
+    "staff",
+  ];
+
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({ message: "Invalid role selected" });
+  }
+
   const existingUser = await User.find({ username: userDetails.username });
 
   if (existingUser.length > 0) {
@@ -53,9 +67,13 @@ router.post(`/login`, async (req, res) => {
   }
 
   if (user && bcrypt.compareSync(password, user.password)) {
-    const token = jwt.sign({ userId: user.id }, process.env.SECRET, {
-      expiresIn: "12h",
-    });
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.SECRET,
+      {
+        expiresIn: "12h",
+      },
+    );
 
     res.status(200).json({
       message: "Login successful",
@@ -67,6 +85,11 @@ router.post(`/login`, async (req, res) => {
     res.status(400).json({ message: "Password is wrong", success: false });
   }
 });
+
+/*
+=========================================
+LOGIN ENDED
+*/
 
 router.get(`/profile`, async (req, res) => {
   const authHeader = req.headers.authorization;

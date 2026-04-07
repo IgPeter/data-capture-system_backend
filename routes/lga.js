@@ -3,6 +3,15 @@ import fs from "fs/promises"; // use promises instead of callbacks
 import { fetchMySQLData, getUniqueLga } from "../utilities/formatData.js";
 const router = express.Router();
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const filePath = path.join(__dirname, "../schools.json");
+
+//GET ALL LGAS
 router.get("/", async (req, res) => {
   try {
     const result = await fetchMySQLData();
@@ -14,7 +23,7 @@ router.get("/", async (req, res) => {
     }
 
     // read file using fs/promises
-    const data = await fs.readFile("./schools.json", "utf-8");
+    const data = await fs.readFile(filePath, "utf-8");
 
     let allSchools;
 

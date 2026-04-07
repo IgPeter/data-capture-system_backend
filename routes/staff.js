@@ -32,6 +32,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+//ROUTE TO UPLOAD A STAFF/TEACHER
 router.post(`/`, upload.single("avatar"), async (req, res) => {
   const school = JSON.parse(req.body.schoolData);
 
@@ -79,6 +80,96 @@ router.post(`/`, upload.single("avatar"), async (req, res) => {
   }
 });
 
+router.get("/updateStaffCategory", async (req, res) => {
+  try {
+    const rows = await fetchPayrollMySQLData();
+
+    if (!rows || rows.length === 0) {
+      return res.json({
+        updated: 0,
+        notFound: [],
+        message: "No payroll data found",
+      });
+    }
+
+    console.log(`📦 Processing ${rows.length} payroll records`);
+
+    const staffNotUpdated = [];
+    let updatedCount = 0;
+    const chunkSize = 500; // Reduced from 1000 — safer for memory
+    const BATCH_SIZE = 200; // How many updates per bulkWrite (recommended)
+
+    // Process in smaller batches without loading ALL staff into memory at once
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize);
+
+      const operations = [];
+
+      for (const row of chunk) {
+        const staffId = String(row.compno).trim();
+
+        if (!staffId) {
+          continue;
+        }
+
+        // Check existence using findOne (more memory efficient than preloading everything)
+        const exists = await Staff.exists({ staffId: staffId });
+
+        if (!exists) {
+          staffNotUpdated.push(staffId);
+          continue;
+        }
+
+        operations.push({
+          updateOne: {
+            filter: { staffId },
+            update: {
+              $set: {
+                staffCategory: row.current_designation ?? null,
+              },
+            },
+          },
+        });
+      }
+
+      // Perform bulkWrite in smaller sub-batches
+      if (operations.length > 0) {
+        for (let j = 0; j < operations.length; j += BATCH_SIZE) {
+          const batch = operations.slice(j, j + BATCH_SIZE);
+
+          const result = await Staff.bulkWrite(batch, {
+            ordered: false, // Continue even if some fail
+            bypassDocumentValidation: true,
+          });
+
+          updatedCount += result.modifiedCount || 0;
+        }
+      }
+
+      console.log(
+        `✅ Processed ${i + chunk.length} / ${rows.length} records | Updated so far: ${updatedCount}`,
+      );
+
+      // Optional: Force garbage collection hint
+      if (global.gc) global.gc();
+    }
+
+    return res.status(200).json({
+      updated: updatedCount,
+      notFound: staffNotUpdated,
+      totalNotFound: staffNotUpdated.length,
+      message: `Sync completed successfully.`,
+    });
+  } catch (error) {
+    console.error("❌ Sync error:", error);
+    return res.status(500).json({
+      message: "Update failed",
+      error: error.message,
+    });
+  }
+});
+
+//GET STAFF DATA FROM MYSQL PAYRLL DB
 router.get("/staff-payroll", async (req, res) => {
   try {
     const payrollData = await fetchPayrollMySQLData();
@@ -92,6 +183,7 @@ router.get("/staff-payroll", async (req, res) => {
   }
 });
 
+//GET ALL STAFF LIST
 router.get("/", async (req, res) => {
   const { lga } = req.query;
 
@@ -127,6 +219,33 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/staffCountPerType", async (req, res) => {
+  try {
+    const result = await Staff.aggregate([
+      {
+        $lookup: {
+          from: "schoolstats",
+          localField: "school",
+          foreignField: "school",
+          as: "schoolInfo",
+        },
+      },
+      { $unwind: "$schoolInfo" },
+      {
+        $group: {
+          _id: "$schoolInfo.type",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+//EXPORT ALL STAFFS FROM THE MONGO DB PER SCHOOL PER LGA//
 router.get("/exportStaffPerSchoolLga", async (req, res) => {
   try {
     // 🔹 1️⃣ Aggregate staff data
@@ -232,11 +351,14 @@ router.get("/exportStaffPerSchoolLga", async (req, res) => {
 
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=Staff_Per_School_Per_LGA.xlsx",
+      "attachment; filename=Staff_Per_School_Per_LGA_FINAL.xlsx",
     );
 
     // 🔹 8️⃣ Send file
-    await workbook.xlsx.writeFile("./reports/Staff_Per_School_Per_LGA.xlsx");
+    await workbook.xlsx.writeFile(
+      "./reports/Staff_Per_School_Per_LGA_FINAL.xlsx",
+    );
+
     res.end();
   } catch (error) {
     console.error("Excel export error:", error);

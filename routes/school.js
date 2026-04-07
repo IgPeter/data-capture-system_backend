@@ -2,10 +2,15 @@ import express from "express";
 const router = express.Router();
 import fs from "fs";
 import { SchoolWithLga } from "../models/schoolWithLga.js";
+import { Staff } from "../models/staff.js";
 import { School } from "../models/school.js";
+import { Learners } from "../models/learners.js";
+import { Facilities } from "../models/facility.js";
+import { SchoolStats } from "../models/SchoolStats.js";
 
 import { getUniqueLga, fetchSchoolMysqlData } from "../utilities/formatData.js";
 
+//GET ALL SCHOOLS BY LGA
 router.get(`/by-lga`, async (req, res) => {
   const { lgaValue } = req.query;
 
@@ -41,6 +46,7 @@ router.get(`/by-lga`, async (req, res) => {
   }
 });
 
+//RETURN ALL SCHOOLS FROM MYSQL
 router.get(`/schoolsWithLga`, async (req, res) => {
   try {
     const schoolsList = await fetchSchoolMysqlData();
@@ -92,6 +98,205 @@ router.get(`/schoolsWithLga`, async (req, res) => {
   }
 });
 
+router.get("/schoolsWithoutStaffs", async (req, res) => {
+  try {
+    // 1. Get all school IDs that have staffs
+    const schoolIdsWithStaffs = await Staff.distinct("school");
+
+    // 2. Find schools NOT in that list
+    const schoolsWithoutStaffs = await School.find({
+      _id: { $nin: schoolIdsWithStaffs },
+    }).lean();
+
+    // 3. Handle empty result
+    if (!schoolsWithoutStaffs.length) {
+      return res.status(404).json({
+        message: "No schools without staffs found",
+      });
+    }
+
+    // 4. Return result
+    res.json({
+      count: schoolsWithoutStaffs.length,
+      schools: schoolsWithoutStaffs,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+//LEARNER ONLY
+router.get("/schoolsWithLearnersOnly", async (req, res) => {
+  try {
+    // 1. Get school IDs
+    const staffSchoolIds = await Staff.distinct("school");
+    const facilitySchoolIds = await Facilities.distinct("school");
+    const learnerSchoolIds = await Learners.distinct("school");
+
+    // 2. Convert to sets
+    const staffSet = new Set(staffSchoolIds.map((id) => id.toString()));
+    const facilitySet = new Set(facilitySchoolIds.map((id) => id.toString()));
+
+    // 3. Filter valid school IDs
+    const validSchoolIds = learnerSchoolIds
+      .map((id) => id.toString())
+      .filter((id) => !staffSet.has(id) && !facilitySet.has(id));
+
+    // 4. Fetch schools
+    const schools = await School.find({
+      _id: { $in: validSchoolIds },
+    }).lean();
+
+    if (!schools.length) {
+      return res.status(404).json({
+        message:
+          "No schools found with learners only (no staffs, no facilities)",
+      });
+    }
+
+    // 5. Group by LGA
+    const grouped = schools.reduce((acc, school) => {
+      const lga = school.lga || "UNKNOWN";
+
+      if (!acc[lga]) {
+        acc[lga] = [];
+      }
+
+      acc[lga].push(school);
+      return acc;
+    }, {});
+
+    // 6. Return grouped result
+    res.json({
+      count: schools.length,
+      grouped,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+//END LEARNER ONLY
+
+router.get("/schoolsWithoutStaffsAndLearners", async (req, res) => {
+  try {
+    // 1. Get school IDs that have staffs or learners
+    const staffSchoolIds = await Staff.distinct("school");
+    const learnerSchoolIds = await Learners.distinct("school");
+
+    // 2. Combine both into one unique set
+    const usedSchoolIds = [
+      ...new Set([
+        ...staffSchoolIds.map((id) => id.toString()),
+        ...learnerSchoolIds.map((id) => id.toString()),
+      ]),
+    ];
+
+    // 3. Find schools NOT in that list
+    const schools = await School.find({
+      _id: { $nin: usedSchoolIds },
+    }).lean();
+
+    // 4. Handle empty result
+    if (!schools.length) {
+      return res.status(404).json({
+        message: "No schools without staffs and learners found",
+      });
+    }
+
+    // 5. Return result
+    res.json({
+      count: schools.length,
+      schools,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+//GETTING SCHOOL LEARNERS DATA
+router.get("/schoolLearnersData", async (req, res) => {
+  try {
+    // 1. Get schools with staffs
+    const schoolIds = await Staff.distinct("school");
+
+    // 2. Get learners for those schools
+    const learners = await Learners.find({
+      school: { $in: schoolIds },
+    }).lean();
+
+    // 3. Classify schools
+    const schoolMap = {};
+
+    learners.forEach((doc) => {
+      const schoolId = doc.school.toString();
+
+      const hasEccde = !!doc.eccde;
+
+      const hasPrimary =
+        doc.primary1 ||
+        doc.primary2 ||
+        doc.primary3 ||
+        doc.primary4 ||
+        doc.primary5 ||
+        doc.primary6;
+
+      const hasSecondary = doc.ubeJss1 || doc.ubeJss2 || doc.ubeJss3;
+
+      let type = null;
+
+      if (hasSecondary) {
+        type = "secondary";
+      } else if (hasEccde && hasPrimary) {
+        type = "eccde_primary";
+      } else if (hasEccde && !hasPrimary) {
+        type = "eccde_only";
+      } else if (!hasEccde && hasPrimary) {
+        type = "primary_only";
+      }
+
+      schoolMap[schoolId] = type;
+    });
+
+    // 4. Convert to array for DB
+    const statsToSave = Object.entries(schoolMap).map(([school, type]) => ({
+      school,
+      type,
+    }));
+
+    // 5. Save (UPSERT to avoid duplicates)
+    await SchoolStats.bulkWrite(
+      statsToSave.map((item) => ({
+        updateOne: {
+          filter: { school: item.school },
+          update: { $set: item },
+          upsert: true,
+        },
+      })),
+    );
+
+    res.json({
+      message: "School classification computed and stored",
+      count: statsToSave.length,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+//API ROUTE TO GET ALL SCHOOLS
 router.get(`/`, async (req, res) => {
   const schoolList = await School.find()
     .populate({ path: "staffs", select: "_id staffId, schoolCategory" })
@@ -112,6 +317,7 @@ router.get(`/`, async (req, res) => {
   });
 });
 
+//MONGO AGGREGATE ROUTE TO GET SCHOOL PER LGA
 router.get("/per-lga", async (req, res) => {
   try {
     const schoolsPerLga = await School.aggregate([

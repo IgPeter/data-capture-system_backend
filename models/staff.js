@@ -13,7 +13,7 @@ const StaffSchema = new Schema({
   mobile_phone: String,
   mda: String,
   schoolCategory: String,
-  current_description: String,
+  staffCategory: { type: String, default: null },
   nin: String,
   email: String,
   address: String,

@@ -6,6 +6,7 @@ import { Staff } from "../models/staff.js";
 import { initSchoolData, formatLearnerData } from "../utilities/formatData.js";
 import ExcelJS from "exceljs";
 
+//API ROUTE TO ADD LEARNERS
 router.post(`/`, async (req, res) => {
   const { data, school } = req.body;
 
@@ -34,6 +35,7 @@ router.post(`/`, async (req, res) => {
   }
 });
 
+//API TO GET ALL LEARNERS
 router.get(`/`, async (req, res) => {
   const learnersList = await Learners.find().populate("school");
 
@@ -41,13 +43,230 @@ router.get(`/`, async (req, res) => {
     return res.status(404).json({ message: "No learners found" });
   }
 
+  let currentLearnerDocId = "";
+  let multipleLearnerSchool = [];
+
+  learnersList.forEach((learnerDoc) => {
+    if (
+      learnerDoc.school.lga == "VANDEIKYA" &&
+      learnerDoc.school._id == currentLearnerDocId
+    ) {
+      multipleLearnerSchool.push(learnerDoc.school);
+    }
+
+    currentLearnerDocId = learnerDoc.school._id;
+  });
+
   res.status(200).json({
     message: "Learners fetched successfully",
-    data: learnersList,
+    //data: learnersList,
+    alt: multipleLearnerSchool,
     learnersCount: learnersList.length,
   });
 });
 
+//ENDPOINT TO GET SCHOOLS WITHOUT LEARNERS
+router.get("/schools-without-learners", async (req, res) => {
+  try {
+    const schoolsWithoutLearners = await School.aggregate([
+      {
+        $lookup: {
+          from: "learners", // learners collection
+          localField: "_id", // schools._id
+          foreignField: "school", // learners.school
+          as: "learners",
+        },
+      },
+      {
+        $match: {
+          learners: { $size: 0 }, // no learners
+        },
+      },
+      {
+        $project: {
+          learners: 0, // optional: remove learners array
+        },
+      },
+    ]);
+
+    res.json({
+      count: schoolsWithoutLearners.length,
+      data: schoolsWithoutLearners,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+//TEMP ENDPOINT TO GET SCHOOLS WITH MULTIPLE LEARNER DOCS (SHOULD NOT BE USED IN PRODUCTION)
+router.get("/schools-with-learners", async (req, res) => {
+  try {
+    const result = await Learners.aggregate([
+      // Group learners by school
+      {
+        $group: {
+          _id: "$school",
+          learnerCount: { $sum: 1 },
+        },
+      },
+
+      // Only schools with 2 or more learners
+      {
+        $match: {
+          learnerCount: { $gte: 2 },
+        },
+      },
+
+      // Join with schools collection
+      {
+        $lookup: {
+          from: "schools", // collection name in MongoDB
+          localField: "_id",
+          foreignField: "_id",
+          as: "school",
+        },
+      },
+
+      // Flatten school array
+      { $unwind: "$school" },
+
+      // Optional: format response
+      {
+        $project: {
+          _id: 0,
+          school: 1,
+          learnerCount: 1,
+        },
+      },
+    ]);
+
+    res.json({
+      success: true,
+      count: result.length,
+      data: result,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+//temp
+router.get("/test", async (req, res) => {
+  try {
+    const learners = await Learners.aggregate([
+      {
+        $lookup: {
+          from: "schools",
+          localField: "school",
+          foreignField: "_id",
+          as: "school",
+        },
+      },
+      { $unwind: "$school" },
+
+      {
+        $match: {
+          "school.lga": "VANDEIKYA",
+        },
+      },
+
+      {
+        $group: {
+          _id: "$school._id",
+          school: { $first: "$school" },
+          learners: { $push: "$$ROOT" },
+          count: { $sum: 1 },
+        },
+      },
+
+      {
+        $match: {
+          count: { $gt: 1 }, // schools with multiple learners
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      message: "Learners fetched successfully",
+      data: learners,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching learners",
+      error: error.message,
+    });
+  }
+});
+
+//Count learners per school type
+router.get("/learnerCountPerType", async (req, res) => {
+  try {
+    const result = await Learners.aggregate([
+      {
+        $lookup: {
+          from: "schoolstats",
+          localField: "school",
+          foreignField: "school",
+          as: "schoolInfo",
+        },
+      },
+      { $unwind: "$schoolInfo" },
+
+      // 1. Compute totals per document
+      {
+        $addFields: {
+          totalLearners: {
+            $add: [
+              // ECCDE
+              { $ifNull: ["$eccde.eccde_male", 0] },
+              { $ifNull: ["$eccde.eccde_female", 0] },
+
+              // Primary 1–6
+              { $ifNull: ["$primary1.pry1_male", 0] },
+              { $ifNull: ["$primary1.pry1_female", 0] },
+              { $ifNull: ["$primary2.pry2_male", 0] },
+              { $ifNull: ["$primary2.pry2_female", 0] },
+              { $ifNull: ["$primary3.pry3_male", 0] },
+              { $ifNull: ["$primary3.pry3_female", 0] },
+              { $ifNull: ["$primary4.pry4_male", 0] },
+              { $ifNull: ["$primary4.pry4_female", 0] },
+              { $ifNull: ["$primary5.pry5_male", 0] },
+              { $ifNull: ["$primary5.pry5_female", 0] },
+              { $ifNull: ["$primary6.pry6_male", 0] },
+              { $ifNull: ["$primary6.pry6_female", 0] },
+
+              // UBE JSS
+              { $ifNull: ["$ubeJss1.jss1_male", 0] },
+              { $ifNull: ["$ubeJss1.jss1_female", 0] },
+              { $ifNull: ["$ubeJss2.jss2_male", 0] },
+              { $ifNull: ["$ubeJss2.jss2_female", 0] },
+              { $ifNull: ["$ubeJss3.jss3_male", 0] },
+              { $ifNull: ["$ubeJss3.jss3_female", 0] },
+            ],
+          },
+        },
+      },
+
+      // 2. Group by type
+      {
+        $group: {
+          _id: "$schoolInfo.type",
+          totalLearners: { $sum: "$totalLearners" },
+        },
+      },
+    ]);
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+//API TO EXPORT LEARNERS DATA FOR PRI 1 - UBE JSS 3
 router.get("/exportUbec", async (req, res) => {
   try {
     // ---------- HELPERS ----------
@@ -288,8 +507,8 @@ router.get("/exportUbec", async (req, res) => {
     );
 
     //await workbook.xlsx.write(res);
-    await workbook.xlsx.writeFile("reports/Latest-Learners-Report3.xlsx");
-    res.download("reports/Latest-Learners-Report3.xlsx");
+    await workbook.xlsx.writeFile("reports/Latest-Learners-Report_FINAL.xlsx");
+    res.download("reports/Latest-Learners-Report_FINAL.xlsx");
     res.end();
   } catch (error) {
     console.error(error);
@@ -297,6 +516,109 @@ router.get("/exportUbec", async (req, res) => {
   }
 });
 //Ended export ubec data
+
+//eccde export
+router.get("/exportUbecEccde", async (req, res) => {
+  try {
+    // ---------- HELPERS ----------
+    const emptyStats = () => ({
+      ECCDE: { M: 0, F: 0 },
+    });
+
+    const NAStats = () => ({
+      ECCDE: { M: "NA", F: "NA" },
+    });
+
+    // ---------- FETCH DATA ----------
+
+    // 1️⃣ Schools that have staff
+    const staffedSchoolIds = await Staff.distinct("school");
+
+    // 2️⃣ Fetch those schools
+    const schools = await School.find({
+      _id: { $in: staffedSchoolIds },
+    }).lean();
+
+    // 3️⃣ Fetch learners that contain ECCDE
+    const learners = await Learners.find({
+      school: { $in: staffedSchoolIds },
+      eccde: { $exists: true, $ne: null },
+    })
+      .populate("school")
+      .lean();
+
+    const statsMap = new Map();
+
+    // ---------- PROCESS LEARNERS ----------
+    learners.forEach((doc) => {
+      if (!doc.school?._id) return;
+
+      const schoolId = String(doc.school._id);
+
+      if (!statsMap.has(schoolId)) {
+        statsMap.set(schoolId, emptyStats());
+      }
+
+      const stats = statsMap.get(schoolId);
+
+      if (doc.eccde) {
+        stats.ECCDE.M += doc.eccde.eccde_male || 0;
+        stats.ECCDE.F += doc.eccde.eccde_female || 0;
+      }
+    });
+
+    // ---------- GROUP SCHOOLS BY LGA ----------
+    const lgaMap = {};
+
+    schools.forEach((s) => {
+      if (!lgaMap[s.lga]) lgaMap[s.lga] = [];
+      lgaMap[s.lga].push(s);
+    });
+
+    // ---------- CREATE EXCEL ----------
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("UBEC ECCDE REPORT");
+
+    sheet.addRow(["LGEA", "NAME OF SCHOOL", "ECCDE M", "ECCDE F"]);
+
+    for (const lga in lgaMap) {
+      let firstRow = true;
+
+      for (const school of lgaMap[lga]) {
+        const stats = statsMap.get(String(school._id)) || NAStats();
+
+        sheet.addRow([
+          firstRow ? lga : "",
+          school.name,
+          stats.ECCDE.M,
+          stats.ECCDE.F,
+        ]);
+
+        firstRow = false;
+      }
+    }
+
+    // ---------- RESPONSE ----------
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=UBEC-ECCDE-Report.xlsx",
+    );
+
+    await workbook.xlsx.writeFile("reports/ECCDE-Report-FINAL.xlsx");
+
+    res.download("reports/ECCDE-Report-FINAL`.xlsx");
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to export report" });
+  }
+});
+
+//--------------------//
 
 router.get("/learnersByLga", async (req, res) => {
   const learnersByLga = await Learners.aggregate([

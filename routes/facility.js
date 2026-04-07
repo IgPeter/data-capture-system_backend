@@ -112,4 +112,540 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/facility-summary", async (req, res) => {
+  try {
+    const result = await Facilities.aggregate([
+      // ✅ Only valid documents
+      {
+        $match: {
+          blocksOfClassroom: { $type: "number" },
+        },
+      },
+
+      // ✅ Join school (get LGA)
+      {
+        $lookup: {
+          from: "schools",
+          localField: "school",
+          foreignField: "_id",
+          as: "schoolData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$schoolData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // ✅ Normalize fields
+      {
+        $addFields: {
+          lga: "$schoolData.lga",
+
+          pitToilet: { $ifNull: ["$pitToilet", 0] },
+          waterCloset: { $ifNull: ["$waterCloset", 0] },
+          vipToilet: { $ifNull: ["$vipToilet", 0] },
+
+          eccdeChairs: { $ifNull: ["$eccdeChairs", 0] },
+          primaryChairs: { $ifNull: ["$primaryChairs", 0] },
+          ubeJssChairs: { $ifNull: ["$ubeJssChairs", 0] },
+          teachersChairs: { $ifNull: ["$teachersChairs", 0] },
+
+          primaryTables: { $ifNull: ["$primaryTables", 0] },
+          ubeJssTables: { $ifNull: ["$ubeJssTables", 0] },
+          teachersTables: { $ifNull: ["$teachersTables", 0] },
+
+          numOfBlackboards: {
+            $convert: {
+              input: "$numOfBlackboards",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          numOfWhiteboards: {
+            $convert: {
+              input: "$numOfWhiteboards",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+        },
+      },
+
+      // ✅ Compute per-document totals (CRITICAL)
+      {
+        $addFields: {
+          totalChairs: {
+            $add: [
+              "$eccdeChairs",
+              "$primaryChairs",
+              "$ubeJssChairs",
+              "$teachersChairs",
+            ],
+          },
+
+          totalTables: {
+            $add: [
+              "$primaryTables",
+              "$ubeJssTables",
+              "$teachersTables",
+            ],
+          },
+
+          totalToilets: {
+            $add: ["$pitToilet", "$waterCloset", "$vipToilet"],
+          },
+
+          documentTotal: {
+            $add: [
+              "$pitToilet",
+              "$waterCloset",
+              "$vipToilet",
+              "$eccdeChairs",
+              "$primaryChairs",
+              "$primaryTables",
+              "$ubeJssChairs",
+              "$ubeJssTables",
+              "$teachersChairs",
+              "$teachersTables",
+              "$numOfBlackboards",
+              "$numOfWhiteboards",
+            ],
+          },
+        },
+      },
+
+      // ✅ GROUP BY LGA
+      {
+        $group: {
+          _id: "$lga",
+
+          totalFacilities: { $sum: 1 },
+
+          totalChairs: { $sum: "$totalChairs" },
+          totalTables: { $sum: "$totalTables" },
+
+          totalWhiteboards: { $sum: "$numOfWhiteboards" },
+          totalBlackboards: { $sum: "$numOfBlackboards" },
+
+          totalToilets: { $sum: "$totalToilets" },
+          pitToilets: { $sum: "$pitToilet" },
+          wcsToilets: { $sum: "$waterCloset" },
+          vipToilets: { $sum: "$vipToilet" },
+
+          totalValue: { $sum: "$documentTotal" },
+        },
+      },
+
+      // ✅ GRAND TOTAL + LGA breakdown
+      {
+        $group: {
+          _id: null,
+
+          totalFacilities: { $sum: "$totalFacilities" },
+
+          totalChairs: { $sum: "$totalChairs" },
+          totalTables: { $sum: "$totalTables" },
+
+          totalWhiteboards: { $sum: "$totalWhiteboards" },
+          totalBlackboards: { $sum: "$totalBlackboards" },
+
+          totalToilets: { $sum: "$totalToilets" },
+          pitToilets: { $sum: "$pitToilets" },
+          wcsToilets: { $sum: "$wcsToilets" },
+          vipToilets: { $sum: "$vipToilets" },
+
+          grandTotal: { $sum: "$totalValue" },
+
+          lgaBreakdown: {
+            $push: {
+              lga: "$_id",
+              totalFacilities: "$totalFacilities",
+
+              totalChairs: "$totalChairs",
+              totalTables: "$totalTables",
+
+              totalWhiteboards: "$totalWhiteboards",
+              totalBlackboards: "$totalBlackboards",
+
+              totalToilets: "$totalToilets",
+              pitToilets: "$pitToilets",
+              wcsToilets: "$wcsToilets",
+              vipToilets: "$vipToilets",
+
+              totalValue: "$totalValue",
+            },
+          },
+        },
+      },
+    ]);
+
+    res.json(result[0] || {});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+//GETTING FACILITY SUMMARY ONCE AND FOR ALL
+router.get("/facility-summary-new", async (req, res) => {
+  try {
+    const result = await Facilities.aggregate([
+      // 1. JOIN SCHOOLS
+      {
+        $lookup: {
+          from: "schools",
+          localField: "school",
+          foreignField: "_id",
+          as: "schoolData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$schoolData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // 2. NORMALIZE DATA (🔥 BULLETPROOF)
+      {
+        $addFields: {
+          lga: "$schoolData.lga",
+
+          // YES / NO → 1 / 0
+          fenceVal: { $cond: [{ $eq: ["$fence", "yes"] }, 1, 0] },
+          agricFarmVal: { $cond: [{ $eq: ["$agricFarm", "yes"] }, 1, 0] },
+          sportFacilityVal: {
+            $cond: [{ $eq: ["$sportFacility", "yes"] }, 1, 0],
+          },
+          blackboardVal: { $cond: [{ $eq: ["$blackboard", "yes"] }, 1, 0] },
+          whiteboardVal: { $cond: [{ $eq: ["$whiteboard", "yes"] }, 1, 0] },
+
+          // FORCE EVERYTHING TO NUMBER
+          blocksOfClassroom: {
+            $convert: {
+              input: "$blocksOfClassroom",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          numOfClassrooms: {
+            $convert: {
+              input: "$numOfClassrooms",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          numOfUsedClassrooms: {
+            $convert: {
+              input: "$numOfUsedClassrooms",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          primaryClassrooms: {
+            $convert: {
+              input: "$primaryClassrooms",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+
+          pitToilet: {
+            $convert: { input: "$pitToilet", to: "int", onError: 0, onNull: 0 },
+          },
+          waterCloset: {
+            $convert: {
+              input: "$waterCloset",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          vipToilet: {
+            $convert: { input: "$vipToilet", to: "int", onError: 0, onNull: 0 },
+          },
+
+          badPitToilet: {
+            $convert: {
+              input: "$badPitToilet",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          badWaterCloset: {
+            $convert: {
+              input: "$badWaterCloset",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          badVipToilet: {
+            $convert: {
+              input: "$badVipToilet",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+
+          goodPitToilet: {
+            $convert: {
+              input: "$goodPitToilet",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          goodWaterCloset: {
+            $convert: {
+              input: "$goodWaterCloset",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          goodVipToilet: {
+            $convert: {
+              input: "$goodVipToilet",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+
+          mPitToilet: {
+            $convert: {
+              input: "$mPitToilet",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          mWaterCloset: {
+            $convert: {
+              input: "$mWaterCloset",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          mVipToilet: {
+            $convert: {
+              input: "$mVipToilet",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+
+          eccdeChairs: {
+            $convert: {
+              input: "$eccdeChairs",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          primaryChairs: {
+            $convert: {
+              input: "$primaryChairs",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          ubeJssChairs: {
+            $convert: {
+              input: "$ubeJssChairs",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          teachersChairs: {
+            $convert: {
+              input: "$teachersChairs",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+
+          primaryTables: {
+            $convert: {
+              input: "$primaryTables",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          ubeJssTables: {
+            $convert: {
+              input: "$ubeJssTables",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          teachersTables: {
+            $convert: {
+              input: "$teachersTables",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+
+          numOfBlackboards: {
+            $convert: {
+              input: "$numOfBlackboards",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+          numOfWhiteboards: {
+            $convert: {
+              input: "$numOfWhiteboards",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+        },
+      },
+
+      // 3. COMPUTE TOTALS PER DOCUMENT
+      {
+        $addFields: {
+          totalChairs: {
+            $add: [
+              "$eccdeChairs",
+              "$primaryChairs",
+              "$ubeJssChairs",
+              "$teachersChairs",
+            ],
+          },
+
+          totalTables: {
+            $add: ["$primaryTables", "$ubeJssTables", "$teachersTables"],
+          },
+
+          totalToilets: {
+            $add: ["$pitToilet", "$waterCloset", "$vipToilet"],
+          },
+
+          totalFacilities: {
+            $add: [
+              "$pitToilet",
+              "$waterCloset",
+              "$vipToilet",
+              "$fenceVal",
+              "$agricFarmVal",
+              "$sportFacilityVal",
+              "$eccdeChairs",
+              "$primaryChairs",
+              "$primaryTables",
+              "$ubeJssChairs",
+              "$ubeJssTables",
+              "$teachersChairs",
+              "$teachersTables",
+              "$numOfBlackboards",
+              "$numOfWhiteboards",
+            ],
+          },
+        },
+      },
+
+      // 4. GRAND TOTAL + LGA TOTALS
+      {
+        $facet: {
+          grandTotal: [
+            {
+              $group: {
+                _id: null,
+                totalFacilities: { $sum: "$totalFacilities" },
+                totalChairs: { $sum: "$totalChairs" },
+                totalTables: { $sum: "$totalTables" },
+                totalWhiteboards: { $sum: "$numOfWhiteboards" },
+                totalBlackboards: { $sum: "$numOfBlackboards" },
+                totalToilets: { $sum: "$totalToilets" },
+                pitToilets: { $sum: "$pitToilet" },
+                wcsToilets: { $sum: "$waterCloset" },
+                vipToilets: { $sum: "$vipToilet" },
+              },
+            },
+          ],
+
+          byLga: [
+            {
+              $group: {
+                _id: "$lga",
+                totalFacilities: { $sum: "$totalFacilities" },
+                totalChairs: { $sum: "$totalChairs" },
+                totalTables: { $sum: "$totalTables" },
+                totalWhiteboards: { $sum: "$numOfWhiteboards" },
+                totalBlackboards: { $sum: "$numOfBlackboards" },
+                totalToilets: { $sum: "$totalToilets" },
+                pitToilets: { $sum: "$pitToilet" },
+                wcsToilets: { $sum: "$waterCloset" },
+                vipToilets: { $sum: "$vipToilet" },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ],
+        },
+      },
+    ]);
+
+    res.json({
+      success: true,
+      data: result[0],
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Error generating facility summary",
+    });
+  }
+});
+
+router.get("/facilityCountPerType", async (req, res) => {
+  try {
+    const result = await Facilities.aggregate([
+      {
+        $lookup: {
+          from: "schoolstats",
+          localField: "school",
+          foreignField: "school",
+          as: "schoolInfo",
+        },
+      },
+      { $unwind: "$schoolInfo" },
+      {
+        $group: {
+          _id: "$schoolInfo.type",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
