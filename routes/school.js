@@ -7,6 +7,9 @@ import { School } from "../models/school.js";
 import { Learners } from "../models/learners.js";
 import { Facilities } from "../models/facility.js";
 import { SchoolStats } from "../models/SchoolStats.js";
+import { authJs } from "../middleware/auth.js";
+import { SchoolAlt } from "../models/schoolAlt.js";
+import { AddedSchool } from "../models/addedSchool.js";
 
 import { getUniqueLga, fetchSchoolMysqlData } from "../utilities/formatData.js";
 
@@ -184,6 +187,121 @@ router.get("/schoolsWithLearnersOnly", async (req, res) => {
 
 //END LEARNER ONLY
 
+// Schools WITH 2 or more facilities
+router.get("/schoolsWithMultipleFacilities", async (req, res) => {
+  try {
+    // 1. Aggregate to find schools with their facility count
+    const facilityCounts = await Facilities.aggregate([
+      {
+        $group: {
+          _id: "$school",
+          facilityCount: { $sum: 1 },
+        },
+      },
+      {
+        $match: {
+          facilityCount: { $gte: 2 }, // 2 or more facilities
+        },
+      },
+    ]);
+
+    const multiFacilitySchoolIds = facilityCounts.map((item) => item._id);
+
+    if (multiFacilitySchoolIds.length === 0) {
+      return res.status(404).json({
+        message: "No schools found with 2 or more facilities",
+      });
+    }
+
+    // 2. Fetch the schools
+    const schools = await School.find({
+      _id: { $in: multiFacilitySchoolIds },
+    }).lean();
+
+    // Optional: Add facility count to each school
+    const schoolMap = new Map(
+      facilityCounts.map((item) => [item._id.toString(), item.facilityCount]),
+    );
+
+    const schoolsWithCount = schools.map((school) => ({
+      ...school,
+      facilityCount: schoolMap.get(school._id.toString()) || 0,
+    }));
+
+    // 3. Group by LGA
+    const grouped = schoolsWithCount.reduce((acc, school) => {
+      const lga = school.lga || "UNKNOWN";
+      if (!acc[lga]) acc[lga] = [];
+      acc[lga].push(school);
+      return acc;
+    }, {});
+
+    res.json({
+      count: schoolsWithCount.length,
+      schools: schoolsWithCount,
+      grouped,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+//school without facilities
+// GET /schoolsWithoutFacilities
+// Schools that have learners but NO facilities at all
+// GET /schoolsWithoutFacilities
+// Returns all schools that have ZERO facilities
+router.get("/schoolsWithoutFacilities", async (req, res) => {
+  try {
+    // 1. Get all school IDs that have at least one facility
+    const facilitySchoolIds = await Facilities.distinct("school");
+    const facilitySet = new Set(facilitySchoolIds.map((id) => id.toString()));
+
+    // 2. Get ALL school IDs
+    const allSchoolIds = await School.distinct("_id");
+
+    // 3. Filter schools that do NOT have any facilities
+    const validSchoolIds = allSchoolIds
+      .map((id) => id.toString())
+      .filter((id) => !facilitySet.has(id));
+
+    if (validSchoolIds.length === 0) {
+      return res.status(404).json({
+        message: "No schools found without facilities",
+      });
+    }
+
+    // 4. Fetch the schools
+    const schools = await School.find({
+      _id: { $in: validSchoolIds },
+    }).lean();
+
+    // 5. Group by LGA (consistent with your other endpoints)
+    const grouped = schools.reduce((acc, school) => {
+      const lga = school.lga || "UNKNOWN";
+      if (!acc[lga]) {
+        acc[lga] = [];
+      }
+      acc[lga].push(school);
+      return acc;
+    }, {});
+
+    res.json({
+      count: schools.length,
+      schools,
+      grouped,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
 router.get("/schoolsWithoutStaffsAndLearners", async (req, res) => {
   try {
     // 1. Get school IDs that have staffs or learners
@@ -296,15 +414,27 @@ router.get("/schoolLearnersData", async (req, res) => {
   }
 });
 
-//API ROUTE TO GET ALL SCHOOLS
-router.get(`/`, async (req, res) => {
+//GET ALL SCHOOLS
+router.get(`/`, authJs, async (req, res) => {
+  const schoolList = await School.find();
+
+  if (!schoolList.length > 0) {
+    return res.status(404).json({ message: "No school found" });
+  }
+
+  res.status(200).json({
+    message: "School fetched successfully",
+    data: schoolList,
+    schoolCount: schoolList.length,
+  });
+});
+
+//API ROUTE TO GET ALL SCHOOLS WITH ASSOCiATED DATA
+router.get(`/withBreakdown`, authJs, async (req, res) => {
   const schoolList = await School.find()
-    .populate({ path: "staffs", select: "_id staffId, schoolCategory" })
-    .populate({ path: "learners", select: "_id eccde primary1 school" })
-    .populate({
-      path: "facilities",
-      select: "_id school toilet toiletComment",
-    });
+    .populate("staffs")
+    .populate("learners")
+    .populate("facilities");
 
   if (!schoolList.length > 0) {
     return res.status(404).json({ message: "No school found" });
@@ -330,6 +460,49 @@ router.get("/per-lga", async (req, res) => {
     );
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/schoolAlt", authJs, async (req, res) => {
+  try {
+    const schoolAlt = await SchoolAlt.find();
+
+    if (!schoolAlt.length > 0) {
+      return res.status(404).json({ message: "No school alt found" });
+    }
+
+    res.status(200).json({
+      message: "School alt fetched successfully",
+      data: schoolAlt,
+      schoolAltCount: schoolAlt.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+    console.log(error);
+  }
+});
+
+router.post(`/addSchool`, authJs, async (req, res) => {
+  const { data } = req.body;
+
+  const newSchool = new AddedSchool({
+    category: data.category,
+    type: data.type,
+    state: data.state,
+    lga: data.lga,
+    town: data.town,
+    location: data.location,
+    level: data.level,
+    yearEstablished: data.yearEstablished,
+  });
+
+  try {
+    const createdSchool = await newSchool.save();
+    return res
+      .status(201)
+      .json({ message: "School created successfully", data: createdSchool });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

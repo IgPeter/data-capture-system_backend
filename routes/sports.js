@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import cloudinary from "../config/cloudinary.js";
 import { Registration } from "../models/sports.js";
+import { authJs } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -288,5 +289,18 @@ router.get(
     }
   },
 );
+
+//getting all registrations data for admin panel
+router.get("/registrationall", authJs, async (req, res) => {
+  try {
+    const registrations = await Registration.find().lean();
+
+    res.status(200).json({ success: true, registrations });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
+  }
+});
 
 export default router;

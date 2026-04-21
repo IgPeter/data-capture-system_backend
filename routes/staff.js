@@ -10,6 +10,8 @@ import {
 import multer from "multer";
 import mongoose from "mongoose";
 import ExcelJS from "exceljs";
+import { authJs } from "../middleware/auth.js";
+import { StaffAlt } from "../models/staffAlt.js";
 
 const fileExtension = {
   "image/png": "png",
@@ -80,7 +82,7 @@ router.post(`/`, upload.single("avatar"), async (req, res) => {
   }
 });
 
-router.get("/updateStaffCategory", async (req, res) => {
+router.get("/updateStaffCategory", authJs, async (req, res) => {
   try {
     const rows = await fetchPayrollMySQLData();
 
@@ -170,7 +172,7 @@ router.get("/updateStaffCategory", async (req, res) => {
 });
 
 //GET STAFF DATA FROM MYSQL PAYRLL DB
-router.get("/staff-payroll", async (req, res) => {
+router.get("/staff-payroll", authJs, async (req, res) => {
   try {
     const payrollData = await fetchPayrollMySQLData();
 
@@ -184,7 +186,7 @@ router.get("/staff-payroll", async (req, res) => {
 });
 
 //GET ALL STAFF LIST
-router.get("/", async (req, res) => {
+router.get("/", authJs, async (req, res) => {
   const { lga } = req.query;
 
   try {
@@ -219,7 +221,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/staffCountPerType", async (req, res) => {
+router.get("/staffCountPerType", authJs, async (req, res) => {
   try {
     const result = await Staff.aggregate([
       {
@@ -246,7 +248,7 @@ router.get("/staffCountPerType", async (req, res) => {
 });
 
 //EXPORT ALL STAFFS FROM THE MONGO DB PER SCHOOL PER LGA//
-router.get("/exportStaffPerSchoolLga", async (req, res) => {
+router.get("/exportStaffPerSchoolLga", authJs, async (req, res) => {
   try {
     // 🔹 1️⃣ Aggregate staff data
     const result = await Staff.aggregate([
@@ -363,6 +365,25 @@ router.get("/exportStaffPerSchoolLga", async (req, res) => {
   } catch (error) {
     console.error("Excel export error:", error);
     res.status(500).json({ message: "Failed to export staff report" });
+  }
+});
+
+router.get("/staffAlt", authJs, async (req, res) => {
+  try {
+    const staffAlt = await StaffAlt.find();
+
+    if (!staffAlt.length > 0) {
+      return res.status(404).json({ message: "No staff alt found" });
+    }
+
+    res.status(200).json({
+      message: "Staff alt fetched successfully",
+      data: staffAlt,
+      staffAltCount: staffAlt.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+    console.log(error);
   }
 });
 

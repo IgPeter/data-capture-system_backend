@@ -4,8 +4,30 @@ import { Learners } from "../models/learners.js";
 import { Staff } from "../models/staff.js";
 import { Facilities } from "../models/facility.js";
 import { computeDashboardStats } from "../services/dashboard-stats-service.js";
+import { DashboardTotal } from "../models/dashboardTotal.js";
+import { authJs } from "../middleware/auth.js";
 
 const router = express.Router();
+
+router.get("/dashboardTotal", authJs, async (req, res) => {
+  const year = Number(req.query.year);
+
+  if (!year) {
+    return res.status(400).json({ message: "Year is required" });
+  }
+
+  try {
+    const total = await DashboardTotal.find({ year: year });
+
+    if (!total.length > 0) {
+      return res.status(404).json({ message: "Dashboard total not found" });
+    }
+    res.json(total);
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+    console.log(error);
+  }
+});
 
 router.get(`/summary`, async (req, res) => {
   try {

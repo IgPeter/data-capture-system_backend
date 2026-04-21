@@ -112,4 +112,28 @@ export const sportsEvents = [
     type: "team",
     genderNeutral: true,
   },
+  {
+    id: 15,
+    name: "Skipping",
+    maxParticipants: 2,
+    maxTechnical: 1,
+    type: "team",
+    genderNeutral: true,
+  },
+  {
+    id: 16,
+    name: "Badminton",
+    maxParticipants: 2,
+    maxTechnical: 1,
+    type: "team",
+    genderNeutral: true,
+  },
+  {
+    id: 17,
+    name: "AYO GAMES",
+    maxParticipants: 2,
+    maxTechnical: 1,
+    type: "team",
+    genderNeutral: true,
+  },
 ];

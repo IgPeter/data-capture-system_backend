@@ -3,6 +3,7 @@ import { User } from "../models/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import { authJs } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -91,19 +92,10 @@ router.post(`/login`, async (req, res) => {
 LOGIN ENDED
 */
 
-router.get(`/profile`, async (req, res) => {
-  const authHeader = req.headers.authorization;
+router.get(`/profile`, authJs, async (req, res) => {
+  const userId = req.userId;
 
-  if (!authHeader) {
-    return res.status(401).json({ message: "Authorization header missing" });
-  }
-
-  const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, process.env.SECRET);
-
-    const userId = decoded.userId;
-
     const user = await User.findById(userId).select("-password");
 
     if (!user) {

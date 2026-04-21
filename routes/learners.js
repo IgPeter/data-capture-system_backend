@@ -5,7 +5,7 @@ import { School } from "../models/school.js";
 import { Staff } from "../models/staff.js";
 import { initSchoolData, formatLearnerData } from "../utilities/formatData.js";
 import ExcelJS from "exceljs";
-
+import { authJs } from "../middleware/auth.js";
 //API ROUTE TO ADD LEARNERS
 router.post(`/`, async (req, res) => {
   const { data, school } = req.body;
@@ -35,11 +35,26 @@ router.post(`/`, async (req, res) => {
   }
 });
 
-//API TO GET ALL LEARNERS
-router.get(`/`, async (req, res) => {
-  const learnersList = await Learners.find().populate("school");
+//GET LEARNER
+router.get(`/`, authJs, async (req, res) => {
+  const learnersList = await Learners.find();
 
-  if (!learnersList.length > 0) {
+  if (!learnersList.length) {
+    return res.status(404).json({ message: "No learners found" });
+  }
+
+  res.status(200).json({
+    message: "Learners fetched successfully",
+    data: learnersList,
+    learnersCount: learnersList.length,
+  });
+});
+
+//API TO GET ALL WITH MULTIPLE LEARNER DOC LEARNERS
+router.get(`/multipleLearnerDoc`, authJs, async (req, res) => {
+  const learnersList = await Learners.find();
+
+  if (!learnersList.length) {
     return res.status(404).json({ message: "No learners found" });
   }
 
@@ -59,14 +74,14 @@ router.get(`/`, async (req, res) => {
 
   res.status(200).json({
     message: "Learners fetched successfully",
-    //data: learnersList,
+    data: learnersList,
     alt: multipleLearnerSchool,
     learnersCount: learnersList.length,
   });
 });
 
-//ENDPOINT TO GET SCHOOLS WITHOUT LEARNERS
-router.get("/schools-without-learners", async (req, res) => {
+//Add authentication middleware to the schools-without-learners route
+router.get("/schools-without-learners", authJs, async (req, res) => {
   try {
     const schoolsWithoutLearners = await School.aggregate([
       {
@@ -98,8 +113,7 @@ router.get("/schools-without-learners", async (req, res) => {
   }
 });
 
-//TEMP ENDPOINT TO GET SCHOOLS WITH MULTIPLE LEARNER DOCS (SHOULD NOT BE USED IN PRODUCTION)
-router.get("/schools-with-learners", async (req, res) => {
+router.get("/schools-with-learners", authJs, async (req, res) => {
   try {
     const result = await Learners.aggregate([
       // Group learners by school
@@ -154,8 +168,8 @@ router.get("/schools-with-learners", async (req, res) => {
   }
 });
 
-//temp
-router.get("/test", async (req, res) => {
+//Add authentication middleware to the test route to secure it
+router.get("/test", authJs, async (req, res) => {
   try {
     const learners = await Learners.aggregate([
       {
@@ -202,8 +216,8 @@ router.get("/test", async (req, res) => {
   }
 });
 
-//Count learners per school type
-router.get("/learnerCountPerType", async (req, res) => {
+//Add authentication middleware to the learnerCountPerType route to secure it
+router.get("/learnerCountPerType", authJs, async (req, res) => {
   try {
     const result = await Learners.aggregate([
       {

@@ -156,6 +156,14 @@ router.get("/facility-summary", async (req, res) => {
           ubeJssTables: { $ifNull: ["$ubeJssTables", 0] },
           teachersTables: { $ifNull: ["$teachersTables", 0] },
 
+          numOfClassrooms: {
+            $convert: {
+              input: "$numOfClassrooms",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
           numOfBlackboards: {
             $convert: {
               input: "$numOfBlackboards",
@@ -188,11 +196,7 @@ router.get("/facility-summary", async (req, res) => {
           },
 
           totalTables: {
-            $add: [
-              "$primaryTables",
-              "$ubeJssTables",
-              "$teachersTables",
-            ],
+            $add: ["$primaryTables", "$ubeJssTables", "$teachersTables"],
           },
 
           totalToilets: {
@@ -211,6 +215,7 @@ router.get("/facility-summary", async (req, res) => {
               "$ubeJssTables",
               "$teachersChairs",
               "$teachersTables",
+              "$numOfClassrooms",
               "$numOfBlackboards",
               "$numOfWhiteboards",
             ],
@@ -223,8 +228,8 @@ router.get("/facility-summary", async (req, res) => {
         $group: {
           _id: "$lga",
 
-          totalFacilities: { $sum: 1 },
-
+          totalFacilities: { $sum: "$documentTotal" },
+          totalClassrooms: { $sum: "$numOfClassrooms" },
           totalChairs: { $sum: "$totalChairs" },
           totalTables: { $sum: "$totalTables" },
 
@@ -235,8 +240,6 @@ router.get("/facility-summary", async (req, res) => {
           pitToilets: { $sum: "$pitToilet" },
           wcsToilets: { $sum: "$waterCloset" },
           vipToilets: { $sum: "$vipToilet" },
-
-          totalValue: { $sum: "$documentTotal" },
         },
       },
 
@@ -245,8 +248,8 @@ router.get("/facility-summary", async (req, res) => {
         $group: {
           _id: null,
 
-          totalFacilities: { $sum: "$totalFacilities" },
-
+          grandTotal: { $sum: "$totalFacilities" },
+          totalClassrooms: { $sum: "$totalClassrooms" },
           totalChairs: { $sum: "$totalChairs" },
           totalTables: { $sum: "$totalTables" },
 
@@ -258,13 +261,11 @@ router.get("/facility-summary", async (req, res) => {
           wcsToilets: { $sum: "$wcsToilets" },
           vipToilets: { $sum: "$vipToilets" },
 
-          grandTotal: { $sum: "$totalValue" },
-
           lgaBreakdown: {
             $push: {
               lga: "$_id",
               totalFacilities: "$totalFacilities",
-
+              totalClassrooms: "$totalClassrooms",
               totalChairs: "$totalChairs",
               totalTables: "$totalTables",
 
@@ -275,8 +276,6 @@ router.get("/facility-summary", async (req, res) => {
               pitToilets: "$pitToilets",
               wcsToilets: "$wcsToilets",
               vipToilets: "$vipToilets",
-
-              totalValue: "$totalValue",
             },
           },
         },
@@ -290,6 +289,215 @@ router.get("/facility-summary", async (req, res) => {
   }
 });
 
+router.get("/facility-summary-unstructured", async (req, res) => {
+  try {
+    const result = await Facilities.aggregate([
+      {
+        $match: {
+          blocksOfClassroom: { $type: "string" },
+        },
+      },
+
+      // Join school to get LGA
+      {
+        $lookup: {
+          from: "schools",
+          localField: "school",
+          foreignField: "_id",
+          as: "school",
+        },
+      },
+
+      { $unwind: "$school" },
+
+      // Extract numeric values safely
+      {
+        $addFields: {
+          blocksNum: {
+            $cond: [
+              { $regexMatch: { input: "$blocksOfClassroom", regex: /^[0-9]/ } },
+              { $toInt: { $substrBytes: ["$blocksOfClassroom", 0, 1] } },
+              0,
+            ],
+          },
+
+          eccdeNum: {
+            $cond: [
+              { $regexMatch: { input: "$eccdeClassroom", regex: /^[0-9]/ } },
+              { $toInt: { $substrBytes: ["$eccdeClassroom", 0, 1] } },
+              0,
+            ],
+          },
+
+          primaryNum: {
+            $cond: [
+              { $regexMatch: { input: "$primaryClassroom", regex: /^[0-9]/ } },
+              { $toInt: { $substrBytes: ["$primaryClassroom", 0, 1] } },
+              0,
+            ],
+          },
+
+          jssNum: {
+            $cond: [
+              { $regexMatch: { input: "$ubeJssClassroom", regex: /^[0-9]/ } },
+              { $toInt: { $substrBytes: ["$ubeJssClassroom", 0, 1] } },
+              0,
+            ],
+          },
+
+          eccdeFurnitureNum: {
+            $cond: [
+              { $regexMatch: { input: "$eccdeFurniture", regex: /^[0-9]/ } },
+              { $toInt: { $substrBytes: ["$eccdeFurniture", 0, 1] } },
+              0,
+            ],
+          },
+
+          primaryFurnitureNum: {
+            $cond: [
+              { $regexMatch: { input: "$primaryFurniture", regex: /^[0-9]/ } },
+              { $toInt: { $substrBytes: ["$primaryFurniture", 0, 1] } },
+              0,
+            ],
+          },
+
+          jssFurnitureNum: {
+            $cond: [
+              { $regexMatch: { input: "$ubeJssFurniture", regex: /^[0-9]/ } },
+              { $toInt: { $substrBytes: ["$ubeJssFurniture", 0, 1] } },
+              0,
+            ],
+          },
+
+          teacherFurnitureNum: {
+            $cond: [
+              { $regexMatch: { input: "$teachersFurniture", regex: /^[0-9]/ } },
+              { $toInt: { $substrBytes: ["$teachersFurniture", 0, 1] } },
+              0,
+            ],
+          },
+        },
+      },
+
+      // Compute totals per facility
+      {
+        $addFields: {
+          classroomsPerBlock: {
+            $add: ["$eccdeNum", "$primaryNum", "$jssNum"],
+          },
+
+          totalClassrooms: {
+            $multiply: [
+              { $add: ["$eccdeNum", "$primaryNum", "$jssNum"] },
+              "$blocksNum",
+            ],
+          },
+
+          totalFurniture: {
+            $add: [
+              "$eccdeFurnitureNum",
+              "$primaryFurnitureNum",
+              "$jssFurnitureNum",
+              "$teacherFurnitureNum",
+            ],
+          },
+        },
+      },
+
+      // Compute whiteboards, blackboards and toilets
+      {
+        $addFields: {
+          totalWhiteboards: {
+            $cond: [{ $eq: ["$whiteboard", "yes"] }, "$totalClassrooms", 0],
+          },
+
+          totalBlackboards: {
+            $cond: [{ $eq: ["$blackboard", "yes"] }, "$totalClassrooms", 0],
+          },
+
+          totalToilets: {
+            $cond: [{ $eq: ["$toilet", "yes"] }, "$blocksNum", 0],
+          },
+        },
+      },
+
+      {
+        $facet: {
+          // GRAND TOTAL
+          grandTotal: [
+            {
+              $group: {
+                _id: null,
+                totalClassrooms: { $sum: "$totalClassrooms" },
+                totalFurniture: { $sum: "$totalFurniture" },
+                totalWhiteboards: { $sum: "$totalWhiteboards" },
+                totalBlackboards: { $sum: "$totalBlackboards" },
+                totalToilets: { $sum: "$totalToilets" },
+              },
+            },
+            {
+              $addFields: {
+                grandTotal: {
+                  $add: [
+                    "$totalClassrooms",
+                    "$totalFurniture",
+                    "$totalWhiteboards",
+                    "$totalBlackboards",
+                    "$totalToilets",
+                  ],
+                },
+              },
+            },
+            { $project: { _id: 0 } },
+          ],
+
+          // LGA TOTALS
+          lgaTotals: [
+            {
+              $group: {
+                _id: "$school.lga",
+                totalClassrooms: { $sum: "$totalClassrooms" },
+                totalFurniture: { $sum: "$totalFurniture" },
+                totalWhiteboards: { $sum: "$totalWhiteboards" },
+                totalBlackboards: { $sum: "$totalBlackboards" },
+                totalToilets: { $sum: "$totalToilets" },
+              },
+            },
+            {
+              $addFields: {
+                totalFacilities: {
+                  $add: [
+                    "$totalClassrooms",
+                    "$totalFurniture",
+                    "$totalWhiteboards",
+                    "$totalBlackboards",
+                    "$totalToilets",
+                  ],
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                lga: "$_id",
+                totalFacilities: 1,
+                totalClassrooms: 1,
+                totalFurniture: 1,
+                totalWhiteboards: 1,
+                totalBlackboards: 1,
+                totalToilets: 1,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    res.json(result[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 //GETTING FACILITY SUMMARY ONCE AND FOR ALL
 router.get("/facility-summary-new", async (req, res) => {
