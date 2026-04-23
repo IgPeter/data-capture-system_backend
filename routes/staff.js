@@ -188,6 +188,7 @@ router.get("/staff-payroll", authJs, async (req, res) => {
 //GET ALL STAFF LIST
 router.get("/", authJs, async (req, res) => {
   const schoolId = req.query.school;
+
   try {
     const staffsList = await Staff.find({ school: schoolId });
 
