@@ -187,33 +187,18 @@ router.get("/staff-payroll", authJs, async (req, res) => {
 
 //GET ALL STAFF LIST
 router.get("/", authJs, async (req, res) => {
-  const { lga } = req.query;
-
+  const schoolId = req.query.school;
   try {
-    const staffsList = await Staff.find().populate("school");
+    const staffsList = await Staff.find({ school: schoolId });
 
     if (!staffsList.length) {
       return res.status(404).json({ message: "No staffs found" });
     }
 
-    // ✅ If no LGA → return full list
-    if (!lga || lga === "All Lgas") {
-      return res.status(200).json({
-        message: "Staffs data fetched successfully",
-        data: staffsList,
-        staffsCount: staffsList.length,
-      });
-    }
-
-    // ✅ Filter by LGA
-    const staffsByLga = staffsList.filter(
-      (staff) => staff?.school?.lga === lga,
-    );
-
     return res.status(200).json({
-      message: "Staffs data by LGA fetched successfully",
-      data: staffsByLga,
-      staffsCount: staffsByLga.length,
+      message: "Staffs data fetched successfully",
+      data: staffsList,
+      staffsCount: staffsList.length,
     });
   } catch (error) {
     console.error(error);

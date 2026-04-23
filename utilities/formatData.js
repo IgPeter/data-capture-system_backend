@@ -1,6 +1,11 @@
 import fs from "fs";
 import { School } from "../models/school.js";
 import mysql from "mysql2/promise";
+import {
+  LGA_ZONAL_ADMIN_A,
+  LGA_ZONAL_ADMIN_B,
+  LGA_ZONAL_ADMIN_C,
+} from "../data/constants.js";
 
 export function formatRequestBody(data) {
   // ✅ Dynamically build a clean object
@@ -187,3 +192,32 @@ export async function initSchoolData(school) {
 
   return schoolData;
 }
+
+// utils/buildAccessFilter.js
+export const buildAccessFilter = (user, query = {}) => {
+  let filter = {};
+
+  // SCHOOL ADMIN
+  if (user.role === "school_admin") {
+    filter.school = user.school;
+  }
+
+  // ZONAL ADMIN
+  else if (user.role.startsWith("zonal_admin")) {
+    const zoneMap = {
+      zonal_admin_a: LGA_ZONAL_ADMIN_A,
+      zonal_admin_b: LGA_ZONAL_ADMIN_B,
+      zonal_admin_c: LGA_ZONAL_ADMIN_C,
+    };
+
+    filter.lga = { $in: zoneMap[user.role] };
+  }
+
+  // STATE ADMIN
+  else if (user.role === "state_admin") {
+    if (query.school) filter.school = query.school;
+    if (query.lga) filter.lga = query.lga;
+  }
+
+  return filter;
+};

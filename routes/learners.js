@@ -37,17 +37,26 @@ router.post(`/`, async (req, res) => {
 
 //GET LEARNER
 router.get(`/`, authJs, async (req, res) => {
-  const learnersList = await Learners.find();
+  const schoolId = req.query.school;
 
-  if (!learnersList.length) {
-    return res.status(404).json({ message: "No learners found" });
+  try {
+    const learnersList = await Learners.find({ school: schoolId });
+
+    if (!learnersList.length) {
+      return res.status(404).json({ message: "No learners found" });
+    }
+
+    res.status(200).json({
+      message: "Learners fetched successfully",
+      data: learnersList,
+      learnersCount: learnersList.length,
+    });
+  } catch (error) {
+    console.error("Error fetching learners:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching learners", error: error.message });
   }
-
-  res.status(200).json({
-    message: "Learners fetched successfully",
-    data: learnersList,
-    learnersCount: learnersList.length,
-  });
 });
 
 //API TO GET ALL WITH MULTIPLE LEARNER DOC LEARNERS

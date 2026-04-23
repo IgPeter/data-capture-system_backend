@@ -11,7 +11,11 @@ import { authJs } from "../middleware/auth.js";
 import { SchoolAlt } from "../models/schoolAlt.js";
 import { AddedSchool } from "../models/addedSchool.js";
 
-import { getUniqueLga, fetchSchoolMysqlData } from "../utilities/formatData.js";
+import {
+  getUniqueLga,
+  fetchSchoolMysqlData,
+  buildAccessFilter,
+} from "../utilities/formatData.js";
 
 //GET ALL SCHOOLS BY LGA
 router.get(`/by-lga`, async (req, res) => {
@@ -302,6 +306,45 @@ router.get("/schoolsWithoutFacilities", async (req, res) => {
   }
 });
 
+router.get("/schoolsWithFacilities", async (req, res) => {
+  try {
+    // 1. Get all school IDs that have at least one facility
+    const facilitySchoolIds = await Facilities.distinct("school");
+
+    if (!facilitySchoolIds.length) {
+      return res.status(404).json({
+        message: "No schools found with facilities",
+      });
+    }
+
+    // 2. Fetch the schools that HAVE facilities
+    const schools = await School.find({
+      _id: { $in: facilitySchoolIds },
+    }).lean();
+
+    // 3. Group by LGA (same pattern as your other endpoint)
+    const grouped = schools.reduce((acc, school) => {
+      const lga = school.lga || "UNKNOWN";
+      if (!acc[lga]) {
+        acc[lga] = [];
+      }
+      acc[lga].push(school);
+      return acc;
+    }, {});
+
+    res.json({
+      count: schools.length,
+      schools,
+      grouped,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
 router.get("/schoolsWithoutStaffsAndLearners", async (req, res) => {
   try {
     // 1. Get school IDs that have staffs or learners
@@ -416,7 +459,8 @@ router.get("/schoolLearnersData", async (req, res) => {
 
 //GET ALL SCHOOLS
 router.get(`/`, authJs, async (req, res) => {
-  const schoolList = await School.find();
+  const filter = buildAccessFilter(req.user, req.query);
+  const schoolList = await School.find(filter);
 
   if (!schoolList.length > 0) {
     return res.status(404).json({ message: "No school found" });
@@ -503,6 +547,100 @@ router.post(`/addSchool`, authJs, async (req, res) => {
       .json({ message: "School created successfully", data: createdSchool });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+import bcrypt from "bcrypt";
+
+router.post("/schoolAccountCreation", async (req, res) => {
+  try {
+    const schoolList = await School.find();
+
+    if (!schoolList.length) {
+      return res.status(404).json({ message: "No school found" });
+    }
+
+    const saltRounds = 10;
+    const defaultPassword = "password123";
+
+    // hash once (no need to hash repeatedly)
+    const hashedPassword = await bcrypt.hash(defaultPassword, saltRounds);
+
+    const updates = [];
+
+    console.log(
+      "🔍 Starting school account creation for",
+      schoolList.length,
+      "schools",
+    );
+
+    for (const school of schoolList) {
+      // ✅ skip if already has code (prevents overwrite)
+      if (school.schoolCode) continue;
+
+      // generate unique code
+      let schoolCode;
+      let exists = true;
+
+      while (exists) {
+        const randomNumber = Math.floor(10000 + Math.random() * 90000); // 5 digits
+        schoolCode = `BEN${randomNumber}`;
+
+        const existing = await School.findOne({ schoolCode });
+        if (!existing) exists = false;
+      }
+
+      // update school
+      school.schoolCode = schoolCode;
+      school.password = hashedPassword;
+
+      updates.push(school.save());
+    }
+
+    await Promise.all(updates);
+
+    res.json({
+      message: "School accounts created successfully",
+      updated: updates.length,
+    });
+  } catch (error) {
+    console.error("❌ Error creating school accounts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.patch(`/:id`, async (req, res) => {
+  const userId = req.params.id;
+
+  const data = req.body;
+  try {
+    const updatedSchool = await School.findByIdAndUpdate(
+      id,
+      { $set: data },
+      {
+        new: true, // return updated document
+        runValidators: true, // enforce schema validation
+      },
+    );
+
+    if (!updatedSchool) {
+      return res.status(404).json({
+        success: false,
+        message: "School not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "School updated successfully",
+      data: updatedSchool,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 });
 
