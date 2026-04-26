@@ -1,0 +1,105 @@
+import mongoose from "mongoose";
+import fs from "fs";
+
+// 🔹 Replace with your MongoDB connection
+const MONGO_URI =
+  "mongodb+srv://igagapeter477_db_admin:%40Shalomigaga12@cluster0.lytt16u.mongodb.net/subebe_capture?retryWrites=true&w=majority&appName=Cluster0";
+
+// 🔹 Define minimal schema (no need for full schema)
+const staffSchema = new mongoose.Schema({}, { strict: false });
+const Staff = mongoose.model("Staff", staffSchema, "staffs");
+
+async function run() {
+  try {
+    await mongoose.connect(MONGO_URI);
+    console.log("✅ Connected to MongoDB");
+
+    const result = await Staff.aggregate([
+      {
+        $match: {
+          staffId: { $regex: "^BSN" },
+        },
+      },
+      {
+        $lookup: {
+          from: "schools",
+          localField: "school",
+          foreignField: "_id",
+          as: "school",
+        },
+      },
+      {
+        $unwind: {
+          path: "$school",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          schoolName: "$school.name",
+        },
+      },
+      {
+        $unset: ["_id", "school"],
+      },
+      {
+        $sort: {
+          schoolName: 1,
+        },
+      },
+    ]);
+
+    console.log(`✅ Found ${result.length} staff`);
+
+    // 🔹 Build CSV
+    let csv = "";
+
+    // Header
+    csv +=
+      [
+        "School",
+        "Staff ID",
+        "Surname",
+        "First Name",
+        "Gender",
+        "Phone",
+        "Grade",
+        "Subject",
+        "Lga",
+      ].join(",") + "\n";
+
+    let currentSchool = "";
+
+    result.forEach((staff) => {
+      // Group visually by school
+      if (staff.schoolName !== currentSchool) {
+        csv += `\n"${staff.schoolName || "Unknown School"}"\n`;
+        currentSchool = staff.schoolName;
+      }
+
+      csv +=
+        [
+          "",
+          `"${staff.staffId || ""}"`,
+          `"${staff.surname || ""}"`,
+          `"${staff.first_name || ""}"`,
+          `"${staff.gender || ""}"`,
+          `"${staff.mobile_phone || ""}"`,
+          `"${staff.current_grade_level || ""}"`,
+          `"${staff.subjectArea || ""}"`,
+          `"${staff.mda || ""}"`,
+        ].join(",") + "\n";
+    });
+
+    // 🔹 Save file
+    fs.writeFileSync("bsn_staff_report.csv", csv);
+
+    console.log("🎉 CSV exported: bsn_staff_report.csv");
+
+    await mongoose.disconnect();
+  } catch (err) {
+    console.error("❌ Error:", err);
+  }
+}
+
+run();

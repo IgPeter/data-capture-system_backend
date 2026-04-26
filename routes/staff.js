@@ -12,6 +12,7 @@ import mongoose from "mongoose";
 import ExcelJS from "exceljs";
 import { authJs } from "../middleware/auth.js";
 import { StaffAlt } from "../models/staffAlt.js";
+import { NonTeachingStaff } from "../models/NonTeachingStaff.js";
 
 const fileExtension = {
   "image/png": "png",
@@ -203,6 +204,26 @@ router.get("/", authJs, async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+//GET NON TEACHING STAFFS
+router.get(`/nonteachingstaff`, authJs, async (req, res) => {
+  try {
+    const nonteachingstaffList = await NonTeachingStaff.find();
+
+    if (!nonteachingstaffList.length > 0) {
+      res.status(404).json({ message: "Non Teaching Staff Not Found" });
+    }
+
+    return res.status(200).json({
+      message: "Staffs data fetched successfully",
+      data: nonteachingstaffList,
+      staffsCount: nonteachingstaffList.length,
+    });
+  } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });

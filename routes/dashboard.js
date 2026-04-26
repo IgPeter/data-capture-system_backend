@@ -22,6 +22,7 @@ router.get("/dashboardTotal", authJs, async (req, res) => {
     if (!total.length > 0) {
       return res.status(404).json({ message: "Dashboard total not found" });
     }
+
     res.json(total);
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error" });
