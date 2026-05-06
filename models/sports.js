@@ -5,15 +5,18 @@ const memberSchema = new Schema({
   surname: { type: String, required: true },
   firstname: { type: String, required: true },
   othernames: { type: String },
-
-  // Common fields for both types
   age: { type: Number },
-  gender: { type: String },
+  gender: { type: String, enum: ["male", "female"] },
+  className: { type: String },
+  arm: { type: String },
+  classTeacher: { type: String },
+  headTeacher: { type: String },
 
   // Technical Team specific fields
   staffId: { type: String },
   designation: { type: String },
   sportingArea: { type: String },
+  healthConcern: { type: String },
 
   // Category per member
   category: {
@@ -46,13 +49,8 @@ const registrationSchema = new Schema({
   schoolCode: { type: String, required: true },
   lgea: { type: String, required: true },
 
-  // Participants-only school fields
-  className: { type: String },
-  arm: { type: String },
-  classTeacher: { type: String },
-  headTeacher: { type: String },
+  //Participant specific fields
   educationSecretary: { type: String },
-  healthConcern: { type: String },
 
   // Members array (each member now carries their own photo)
   members: [memberSchema],

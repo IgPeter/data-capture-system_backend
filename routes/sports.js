@@ -37,12 +37,7 @@ router.post(
         schoolName,
         schoolCode,
         lgea,
-        className,
-        arm,
-        classTeacher,
-        headTeacher,
         educationSecretary,
-        healthConcern,
         members,
       } = req.body;
 
@@ -94,20 +89,26 @@ router.post(
           firstname: member.firstname,
           othernames: member.othernames || "",
           category: category,
-          memberRegId: `MEM-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+          memberRegId: `MEM-${Math.floor(Math.random() * 100000)}`,
         };
 
         // Add type-specific fields
         if (category === "participants") {
           Object.assign(base, {
-            age: member.age || null,
-            gender: member.gender || null,
+            age: member.age || "",
+            gender: member.gender || "",
+            class: member.class || "",
+            arm: member.arm || "",
+            headTeacher: member.headTeacher || "",
+            classTeacher: member.classTeacher || "",
+            healthConcern:
+              category === "participants" ? member.healthConcern : undefined,
           });
         } else {
           Object.assign(base, {
-            staffId: member.staffId || null,
-            designation: member.designation || null,
-            sportingArea: member.sportingArea || null,
+            staffId: member.staffId || "",
+            designation: member.designation || "",
+            sportingArea: member.sportingArea || "",
           });
         }
 
@@ -119,20 +120,6 @@ router.post(
 
         return base;
       });
-
-      // Check maximum limits
-      const currentCount = parsedMembers.length;
-      const maxAllowed =
-        category === "participants" ?
-          event.maxParticipants
-        : event.maxTechnical || 0;
-
-      if (currentCount > maxAllowed) {
-        return res.status(400).json({
-          success: false,
-          message: `You cannot register more than ${maxAllowed} ${category} for this event.`,
-        });
-      }
 
       // Upload photos and attach to members
       for (let i = 0; i < photoFiles.length; i++) {
@@ -171,8 +158,25 @@ router.post(
       });
 
       if (registration) {
-        // Append new members (with their photos)
-        registration.members.push(...parsedMembers);
+        // Check maximum limits
+        const existingMembers = registration.members;
+
+        const currentCount =
+          category === "participants" ?
+            existingMembers.filter((m) => m.category === "participants").length
+          : existingMembers.filter((m) => m.category === "technical").length;
+
+        const maxAllowed =
+          category === "participants" ?
+            event.maxParticipants
+          : event.maxTechnical || 0;
+
+        if (currentCount >= maxAllowed) {
+          return res.status(400).json({
+            success: false,
+            message: `You cannot register more than ${maxAllowed} ${category} for this event.`,
+          });
+        }
 
         // Update flags
         if (category === "participants") {
@@ -181,15 +185,8 @@ router.post(
           registration.technicalSubmitted = true;
         }
 
-        // Update participant fields if applicable
-        if (category === "participants") {
-          registration.className = className;
-          registration.arm = arm;
-          registration.classTeacher = classTeacher;
-          registration.headTeacher = headTeacher;
-          registration.educationSecretary = educationSecretary;
-          registration.healthConcern = healthConcern;
-        }
+        // Append new members (with their photos)
+        registration.members.push(...parsedMembers);
       } else {
         // First time registration
         registration = new Registration({
@@ -198,15 +195,9 @@ router.post(
           category,
           schoolName,
           schoolCode: schoolCode.trim(),
-          lgea,
-          className: category === "participants" ? className : undefined,
-          arm: category === "participants" ? arm : undefined,
-          classTeacher: category === "participants" ? classTeacher : undefined,
-          headTeacher: category === "participants" ? headTeacher : undefined,
           educationSecretary:
             category === "participants" ? educationSecretary : undefined,
-          healthConcern:
-            category === "participants" ? healthConcern : undefined,
+          lgea,
           members: parsedMembers,
           participantsSubmitted: category === "participants",
           technicalSubmitted: category === "technical",
@@ -241,9 +232,18 @@ router.get("/registration/:regId", async (req, res) => {
   try {
     const { regId } = req.params;
 
-    const registration = await Registration.findOne({ regId })
-      .select("-passportPhotos.publicId") // optional: hide sensitive data
-      .lean(); // for better performance
+    const registration = await Registration.findOne(
+      { members: { $elemMatch: { memberRegId: regId } } },
+      {
+        "members.$": 1,
+        eventId: 1,
+        eventName: 1,
+        schoolName: 1,
+        schoolCode: 1,
+        lgea: 1,
+        regId: 1,
+      },
+    ).lean(); // for better performance
 
     if (!registration) {
       return res.status(404).json({

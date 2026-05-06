@@ -8,7 +8,6 @@ import { Learners } from "../models/learners.js";
 import { Facilities } from "../models/facility.js";
 import { SchoolStats } from "../models/SchoolStats.js";
 import { authJs } from "../middleware/auth.js";
-import { SchoolAlt } from "../models/schoolAlt.js";
 import { AddedSchool } from "../models/addedSchool.js";
 
 import {
@@ -504,25 +503,6 @@ router.get("/per-lga", async (req, res) => {
     );
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }
-});
-
-router.get("/schoolAlt", authJs, async (req, res) => {
-  try {
-    const schoolAlt = await SchoolAlt.find();
-
-    if (!schoolAlt.length > 0) {
-      return res.status(404).json({ message: "No school alt found" });
-    }
-
-    res.status(200).json({
-      message: "School alt fetched successfully",
-      data: schoolAlt,
-      schoolAltCount: schoolAlt.length,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Internal Server Error" });
-    console.log(error);
   }
 });
 

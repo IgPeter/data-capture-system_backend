@@ -52,6 +52,49 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/", async (req, res) => {
+  const schoolId = req.query.school;
+
+  try {
+    const facilitiesList = await Facilities.find({
+      school: schoolId,
+      blocksOfClassroom: { $type: "number" },
+    });
+
+    if (!facilitiesList.length) {
+      return res
+        .status(200)
+        .json({ message: "No facility data was found", data: [] });
+    }
+
+    res.json({ success: true, data: facilitiesList });
+  } catch (error) {
+    console.error("Error fetching facilities:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+router.get("/test", async (req, res) => {
+  try {
+    const facilitiesList = await Facilities.find();
+
+    if (!facilitiesList.length) {
+      return res
+        .status(200)
+        .json({ message: "No facility data was found", data: [] });
+    }
+
+    res.json({
+      success: true,
+      data: facilitiesList,
+      count: facilitiesList.length,
+    });
+  } catch (error) {
+    console.error("Error fetching facilities:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 router.get("/facility-summary", async (req, res) => {
   try {
     const result = await Facilities.aggregate([

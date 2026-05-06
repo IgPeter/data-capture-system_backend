@@ -11,7 +11,6 @@ import multer from "multer";
 import mongoose from "mongoose";
 import ExcelJS from "exceljs";
 import { authJs } from "../middleware/auth.js";
-import { StaffAlt } from "../models/staffAlt.js";
 import { NonTeachingStaff } from "../models/NonTeachingStaff.js";
 
 const fileExtension = {
@@ -372,25 +371,6 @@ router.get("/exportStaffPerSchoolLga", authJs, async (req, res) => {
   } catch (error) {
     console.error("Excel export error:", error);
     res.status(500).json({ message: "Failed to export staff report" });
-  }
-});
-
-router.get("/staffAlt", authJs, async (req, res) => {
-  try {
-    const staffAlt = await StaffAlt.find();
-
-    if (!staffAlt.length > 0) {
-      return res.status(404).json({ message: "No staff alt found" });
-    }
-
-    res.status(200).json({
-      message: "Staff alt fetched successfully",
-      data: staffAlt,
-      staffAltCount: staffAlt.length,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Internal Server Error" });
-    console.log(error);
   }
 });
 

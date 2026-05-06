@@ -90,7 +90,7 @@ router.get(`/multipleLearnerDoc`, authJs, async (req, res) => {
 });
 
 //Add authentication middleware to the schools-without-learners route
-router.get("/schools-without-learners", authJs, async (req, res) => {
+router.get("/schools-without-learners", async (req, res) => {
   try {
     const schoolsWithoutLearners = await School.aggregate([
       {
@@ -122,7 +122,7 @@ router.get("/schools-without-learners", authJs, async (req, res) => {
   }
 });
 
-router.get("/schools-with-learners", authJs, async (req, res) => {
+router.get("/schools-with-learners", async (req, res) => {
   try {
     const result = await Learners.aggregate([
       // Group learners by school
