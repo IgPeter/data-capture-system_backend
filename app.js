@@ -14,6 +14,7 @@ import LearnersRouter from "./routes/learners.js";
 import FacilityRouter from "./routes/facility.js";
 import DashboardRouter from "./routes/dashboard.js";
 import SportsRouter from "./routes/sports.js";
+import NonTeachingStaffRouter from "./routes/nonteachingStaff.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -59,6 +60,7 @@ app.use(`${api}/learners`, LearnersRouter);
 app.use(`${api}/facilities`, FacilityRouter);
 app.use(`${api}/users`, UserRouter);
 app.use(`${api}/sports`, SportsRouter);
+app.use(`${api}/nonteachingstaff`, NonTeachingStaffRouter);
 
 // static uploads
 app.use(

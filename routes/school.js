@@ -1,4 +1,6 @@
 import express from "express";
+import multer from "multer";
+import csv from "csv-parser";
 const router = express.Router();
 import fs from "fs";
 import { SchoolWithLga } from "../models/schoolWithLga.js";
@@ -9,6 +11,8 @@ import { Facilities } from "../models/facility.js";
 import { SchoolStats } from "../models/SchoolStats.js";
 import { authJs } from "../middleware/auth.js";
 import { AddedSchool } from "../models/addedSchool.js";
+import { SchoolAccount } from "../models/schoolAccounts.js";
+import bcrypt from "bcrypt";
 
 import {
   getUniqueLga,
@@ -514,6 +518,7 @@ router.post(`/addSchool`, authJs, async (req, res) => {
     type: data.type,
     state: data.state,
     lga: data.lga,
+    name: data.name,
     town: data.town,
     location: data.location,
     level: data.level,
@@ -522,70 +527,128 @@ router.post(`/addSchool`, authJs, async (req, res) => {
 
   try {
     const createdSchool = await newSchool.save();
-    return res
-      .status(201)
-      .json({ message: "School created successfully", data: createdSchool });
+    res.status(201).json({
+      message: "School added successfully",
+      data: createdSchool,
+    });
   } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+});
+
+// Multer setup for CSV uploads
+const upload = multer({
+  dest: "uploads/", // Temporary storage for uploaded files
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "text/csv" || file.originalname.endsWith(".csv")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only CSV files are allowed"), false);
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+});
+
+// Alternative bulk upload that reuses your existing addSchool logic
+router.post("/bulkUpload", upload.single("csvFile"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No CSV file uploaded" });
+    }
+
+    const filePath = req.file.path;
+    const results = [];
+    const createdSchools = [];
+    const errors = [];
+
+    // Parse CSV
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on("data", (row) => {
+        results.push(row);
+      })
+      .on("end", async () => {
+        // Clean up uploaded file
+        fs.unlinkSync(filePath);
+
+        // Process each row using your existing logic
+        for (let i = 0; i < results.length; i++) {
+          try {
+            // Reuse your existing addSchool logic
+            const newSchool = new AddedSchool({
+              category: results[i].category,
+              type: results[i].type,
+              state: results[i].state,
+              lga: results[i].lga,
+              town: results[i].town,
+              location: results[i].location,
+              level: results[i].level,
+              yearEstablished: results[i].yearEstablished,
+            });
+
+            const createdSchool = await newSchool.save();
+            createdSchools.push(createdSchool);
+          } catch (error) {
+            errors.push({
+              row: i + 2,
+              error: error.message,
+            });
+          }
+        }
+
+        res.status(201).json({
+          message: "Bulk upload completed",
+          data: {
+            uploadedCount: createdSchools.length,
+            totalRows: results.length,
+            errors,
+            createdSchools,
+          },
+        });
+      });
+  } catch (error) {
+    console.error("Bulk upload error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-import bcrypt from "bcrypt";
-
 router.post("/schoolAccountCreation", async (req, res) => {
+  const { username, password, schoolName, schoolCode } = req.body;
   try {
-    const schoolList = await School.find();
+    const schoolAccountList = await SchoolAccount.find({ username: username });
 
-    if (!schoolList.length) {
-      return res.status(404).json({ message: "No school found" });
+    if (schoolAccountList.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "This school account already exxist" });
     }
 
     const saltRounds = 10;
-    const defaultPassword = "password123";
+    const defaultPassword = password || "password123";
 
     // hash once (no need to hash repeatedly)
     const hashedPassword = await bcrypt.hash(defaultPassword, saltRounds);
 
-    const updates = [];
+    const newSchoolAccount = new SchoolAccount({
+      username: username,
+      password: hashedPassword,
+      schoolCode: schoolCode,
+      schoolName: schoolName,
+    });
 
-    console.log(
-      "🔍 Starting school account creation for",
-      schoolList.length,
-      "schools",
-    );
+    const createdSchoolAccount = await newSchoolAccount.save();
 
-    for (const school of schoolList) {
-      // ✅ skip if already has code (prevents overwrite)
-      if (school.schoolCode) continue;
-
-      // generate unique code
-      let schoolCode;
-      let exists = true;
-
-      while (exists) {
-        const randomNumber = Math.floor(10000 + Math.random() * 90000); // 5 digits
-        schoolCode = `BEN${randomNumber}`;
-
-        const existing = await School.findOne({ schoolCode });
-        if (!existing) exists = false;
-      }
-
-      // update school
-      school.schoolCode = schoolCode;
-      school.password = hashedPassword;
-
-      updates.push(school.save());
-    }
-
-    await Promise.all(updates);
-
-    res.json({
-      message: "School accounts created successfully",
-      updated: updates.length,
+    res.status(201).json({
+      message: "School Account Created Successfully",
+      data: createdSchoolAccount,
     });
   } catch (error) {
-    console.error("❌ Error creating school accounts:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ message: "Internal server error", error: error });
   }
 });
 

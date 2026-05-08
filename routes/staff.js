@@ -1,4 +1,5 @@
 import express from "express";
+import csv from "csv-parser";
 const router = express.Router();
 import { Staff } from "../models/staff.js";
 import { connectMongo } from "../database/db.js";
@@ -12,6 +13,7 @@ import mongoose from "mongoose";
 import ExcelJS from "exceljs";
 import { authJs } from "../middleware/auth.js";
 import { NonTeachingStaff } from "../models/NonTeachingStaff.js";
+import fs from "fs";
 
 const fileExtension = {
   "image/png": "png",
@@ -207,26 +209,6 @@ router.get("/", authJs, async (req, res) => {
   }
 });
 
-//GET NON TEACHING STAFFS
-router.get(`/nonteachingstaff`, authJs, async (req, res) => {
-  try {
-    const nonteachingstaffList = await NonTeachingStaff.find();
-
-    if (!nonteachingstaffList.length > 0) {
-      res.status(404).json({ message: "Non Teaching Staff Not Found" });
-    }
-
-    return res.status(200).json({
-      message: "Staffs data fetched successfully",
-      data: nonteachingstaffList,
-      staffsCount: nonteachingstaffList.length,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
-
 router.get("/staffCountPerType", authJs, async (req, res) => {
   try {
     const result = await Staff.aggregate([
@@ -371,6 +353,119 @@ router.get("/exportStaffPerSchoolLga", authJs, async (req, res) => {
   } catch (error) {
     console.error("Excel export error:", error);
     res.status(500).json({ message: "Failed to export staff report" });
+  }
+});
+
+//UPDATE STAFF ENDPOINT
+router.patch("/:id", async (req, res) => {
+  try {
+    const staffId = req.params.id;
+    const updateData = req.body;
+
+    const updatedStaff = await Staff.findByIdAndUpdate(
+      staffId,
+      { $set: updateData }, // Use $set for partial updates
+      { new: true, runValidators: true },
+    );
+
+    if (!updatedStaff) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: updatedStaff,
+      message: "Staff updated successfully",
+    });
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+//STAFF BULK UPLOAD ENDPOINT
+router.post("/bulkUpload", upload.single("csvFile"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No CSV file uploaded" });
+    }
+
+    const filePath = req.file.path;
+    const results = [];
+    const errors = [];
+    const createdStaff = [];
+
+    // Parse CSV file
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on("data", (row) => {
+        results.push(row);
+      })
+      .on("end", async () => {
+        try {
+          // Clean up uploaded file
+          fs.unlinkSync(filePath);
+
+          // Validate required fields
+          const requiredFields = [
+            "staffId",
+            "surname",
+            "first_name",
+            "gender",
+            "mobile_phone",
+            "staffCategory",
+            "school",
+          ];
+
+          for (let i = 0; i < results.length; i++) {
+            try {
+              const staffData = results[i];
+
+              // Validate required fields
+              const missingFields = requiredFields.filter(
+                (field) => !staffData[field],
+              );
+              if (missingFields.length > 0) {
+                errors.push({
+                  row: i + 2,
+                  error: `Missing required fields: ${missingFields.join(", ")}`,
+                });
+                continue;
+              }
+
+              // Create new staff
+              const newStaff = new Staff({
+                ...staffData,
+                dateCreated: new Date(),
+              });
+
+              const savedStaff = await newStaff.save();
+              createdStaff.push(savedStaff);
+            } catch (error) {
+              errors.push({
+                row: i + 2,
+                error: error.message,
+              });
+            }
+          }
+
+          res.status(201).json({
+            message: "Bulk upload completed",
+            data: {
+              uploadedCount: createdStaff.length,
+              totalRows: results.length,
+              errors,
+              createdStaff,
+            },
+          });
+        } catch (error) {
+          console.error("Bulk upload processing error:", error);
+          res.status(500).json({ message: "Error processing CSV file" });
+        }
+      });
+  } catch (error) {
+    console.error("Bulk upload error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

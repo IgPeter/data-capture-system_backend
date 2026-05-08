@@ -4,8 +4,8 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import multer from "multer";
-import path from "path";
 import { authJs } from "../middleware/auth.js";
+import { SchoolAccount } from "../models/schoolAccounts.js";
 
 const router = express.Router();
 
@@ -88,6 +88,7 @@ router.post(`/register`, upload.single("avatar"), async (req, res) => {
     );
 
     res.status(201).json({
+      success: true,
       message: "New user created successfully",
       createdUser,
     });
