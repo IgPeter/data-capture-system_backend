@@ -59,6 +59,30 @@ router.get(`/`, authJs, async (req, res) => {
   }
 });
 
+router.get(`/:learnerId`, authJs, async (req, res) => {
+  const learnerId = req.params.learnerId;
+
+  try {
+    const learner = await Learners.findById(learnerId);
+    if (!learner) {
+      return res.status(404).json({
+        success: false,
+        message: "Learner not found",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      data: learner,
+    });
+  } catch (error) {
+    console.error("Error fetching learner:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
 //API TO GET ALL WITH MULTIPLE LEARNER DOC LEARNERS
 router.get(`/multipleLearnerDoc`, authJs, async (req, res) => {
   const learnersList = await Learners.find();

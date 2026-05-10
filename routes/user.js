@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import multer from "multer";
 import { authJs } from "../middleware/auth.js";
-import { SchoolAccount } from "../models/schoolAccounts.js";
 
 const router = express.Router();
 

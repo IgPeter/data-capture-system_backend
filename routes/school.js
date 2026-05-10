@@ -652,6 +652,30 @@ router.post("/schoolAccountCreation", async (req, res) => {
   }
 });
 
+router.get(`/:schoolId`, async (req, res) => {
+  const schoolId = req.params.schoolId;
+
+  try {
+    const school = await School.findById(schoolId);
+    if (!school) {
+      return res.status(404).json({
+        success: false,
+        message: "School not found",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      data: school,
+    });
+  } catch (error) {
+    console.error("Error fetching school:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
 router.patch(`/:id`, async (req, res) => {
   const userId = req.params.id;
 
