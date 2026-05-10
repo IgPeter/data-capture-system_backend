@@ -63,10 +63,7 @@ app.use(`${api}/sports`, SportsRouter);
 app.use(`${api}/nonteachingstaff`, NonTeachingStaffRouter);
 
 // static uploads
-app.use(
-  "/public/upload",
-  express.static(path.join(__dirname, "public", "upload")),
-);
+app.use("/public", express.static(path.join(__dirname, "public")));
 
 // serve the built react app
 const distPath = path.join(__dirname, "dist");
