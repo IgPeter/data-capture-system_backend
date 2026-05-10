@@ -68,11 +68,6 @@ app.use(
   express.static(path.join(__dirname, "public", "upload")),
 );
 
-app.use(
-  "/public/upload/user",
-  express.static(path.join(__dirname, "public", "upload", "user")),
-);
-
 // serve the built react app
 const distPath = path.join(__dirname, "dist");
 app.use(express.static(distPath));

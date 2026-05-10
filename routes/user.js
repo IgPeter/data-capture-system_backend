@@ -63,7 +63,8 @@ router.post(`/register`, upload.single("avatar"), async (req, res) => {
     // ✅ avatar path
     let avatarPath = "";
     if (file) {
-      avatarPath = `${req.protocol}://${req.get("host")}/public/upload/user/${file.filename}`;
+      const protocol = req.get("x-forwarded-proto") || req.protocol;
+      avatarPath = `${protocol}://${req.get("host")}/public/upload/user/${file.filename}`;
     }
 
     const user = new User({
