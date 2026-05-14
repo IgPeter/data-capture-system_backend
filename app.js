@@ -1,11 +1,9 @@
 // app.js
 import express from "express";
 import dotenv from "dotenv";
-import mongoose from "mongoose";
 import morgan from "morgan";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { connectMongo } from "./database/db.js";
 import LgaRouter from "./routes/lga.js";
 import SchoolRouter from "./routes/school.js";
 import StaffRouter from "./routes/staff.js";
@@ -24,8 +22,6 @@ const app = express();
 // basic logs to help debugging
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const PORT = process.env.PORT || 5000;
-const listening_ip = process.env.listeningIP || "localhost";
 
 // --- SANITIZE API BASE ---
 let api = process.env.API_URL; //?? "/api";
@@ -48,8 +44,6 @@ app.use(
     origin: "*", // adjust this in production to restrict domains
   }),
 );
-
-console.log(`API base path: ${api}`);
 
 // --- API ROUTES (use sanitized api) ---
 app.use(`${api}/dashboard`, DashboardRouter);

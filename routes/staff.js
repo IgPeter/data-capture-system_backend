@@ -174,7 +174,7 @@ router.get("/updateStaffCategory", authJs, async (req, res) => {
 });
 
 //GET STAFF DATA FROM MYSQL PAYRLL DB
-router.get("/staff-payroll", authJs, async (req, res) => {
+router.get("/staff-payroll", async (req, res) => {
   try {
     const payrollData = await fetchPayrollMySQLData();
 
